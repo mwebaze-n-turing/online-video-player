@@ -13,9 +13,25 @@
     "validate": "npm run lint && npm run type-check"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@mux/mux-player": "^3.4.0",
+    "@vidstack/player": "^0.13.3",
+    "@vidstack/react": "^0.6.15",
+    "dashjs": "^5.0.2",
+    "hls.js": "^1.6.2",
+    "media-chrome": "^4.10.0",
     "next": "15.3.2",
+    "plyr": "^3.7.8",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "shaka-player": "^4.14.14",
+    "srt-parser-2": "^1.2.3",
+    "subtitle": "4.2.2-alpha.0",
+    "video.js": "^8.22.0",
+    "videojs-analytics": "^1.0.0",
+    "webvtt-parser": "^2.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
