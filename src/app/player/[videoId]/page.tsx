@@ -1,116 +1,61 @@
 // src/app/player/[videoId]/page.tsx
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import VideoPlayer from '@/components/video/Player/VideoPlayer';
+import { serverConfig } from '@/config/server';
+import ConfigurableVideoPlayer from '@/components/video/Player/ConfigurableVideoPlayer';
 
-// Types for API response
-interface VideoData {
-  id: string;
-  title: string;
-  description: string;
-  videoUrl: string;
-  posterUrl?: string;
-  subtitles?: {
-    language: string;
-    label: string;
-    url: string;
-    type: 'vtt' | 'srt';
-    default?: boolean;
-  }[];
+interface VideoPageProps {
+  params: { videoId: string };
 }
 
-// Fetch video data (runs on server)
-async function getVideoData(videoId: string): Promise<VideoData> {
-  // In a real app, fetch from your API
-  // For example: return fetch(`${process.env.NEXT_PUBLIC_VIDEO_API_ENDPOINT}/${videoId}`).then(res => res.json());
+async function getVideoData(videoId: string) {
+  const apiUrl = `${serverConfig.api.endpoints.videos}/${videoId}`;
 
-  // Mock data for example
-  const videos: Record<string, VideoData> = {
-    'demo-video': {
-      id: 'demo-video',
-      title: 'Demo Video',
-      description: 'This is a demo video for our Next.js video player',
-      videoUrl: '/videos/demo.mp4', // Static file in public directory
-      posterUrl: '/thumbnails/demo-poster.jpg',
-      subtitles: [
-        {
-          language: 'en',
-          label: 'English',
-          url: '/subtitles/demo-en.vtt',
-          type: 'vtt',
-          default: true,
-        },
-        {
-          language: 'es',
-          label: 'Spanish',
-          url: '/subtitles/demo-es.vtt',
-          type: 'vtt',
-        },
-      ],
+  // Use server-side secrets for API auth
+  const response = await fetch(apiUrl, {
+    headers: {
+      Authorization: `Bearer ${serverConfig.secrets.videoApiKey}`,
     },
-    'hls-example': {
-      id: 'hls-example',
-      title: 'HLS Streaming Example',
-      description: 'A sample HLS stream',
-      videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-      posterUrl: '/thumbnails/hls-poster.jpg',
-    },
-  };
+    next: { revalidate: 3600 }, // Revalidate every hour
+  });
 
-  const video = videos[videoId];
-
-  if (!video) {
+  if (!response.ok) {
     throw new Error('Video not found');
   }
 
-  return video;
+  return response.json();
 }
 
-// Server Component
-export default async function VideoPage({ params }: { params: { videoId: string } }) {
+export default async function VideoPage({ params }: VideoPageProps) {
   try {
     const videoData = await getVideoData(params.videoId);
-
-    // Map subtitles from API format to component format
-    const subtitles = videoData.subtitles?.map(sub => ({
-      id: `${sub.language}-${Math.random().toString(36).slice(2)}`,
-      language: sub.language,
-      label: sub.label,
-      src: sub.url,
-      default: sub.default,
-      type: sub.type,
-    }));
 
     return (
       <div>
         <h1>{videoData.title}</h1>
-        {/* Wrap video player in Suspense for better loading experience */}
         <Suspense>
-          {/* Client component with dynamic import for better performance */}
-          <VideoPlayer
-            src={videoData.videoUrl}
-            posterSrc={videoData.posterUrl}
-            title={videoData.title}
-            subtitles={subtitles as any}
-            autoplay={false}
-            muted={false}
-            className="rounded-lg shadow-lg overflow-hidden"
-          />
+          <ConfigurableVideoPlayer videoId={params.videoId} title={videoData.title} />
         </Suspense>
-        <div className="mt-6">
-          <h2>Description</h2>
+        {/* Render additional video metadata */}
+        <div className="mt-4 prose">
           <p>{videoData.description}</p>
+          {/* Debug information in development */}
+          {serverConfig.app.isDev && (
+            <div className="p-4 bg-gray-100 rounded-lg mt-8">
+              <h3>Debug Info</h3>
+              <p>Environment: {serverConfig.app.environment}</p>
+              <p>Video ID: {params.videoId}</p>
+              <p>
+                API URL: {serverConfig.api.endpoints.videos}/{params.videoId}
+              </p>
+              <p>HLS Enabled: {String(serverConfig.features.hls)}</p>
+              <p>DASH Enabled: {String(serverConfig.features.dash)}</p>
+            </div>
+          )}
         </div>
       </div>
     );
   } catch (error) {
-    // Use Next.js not found page if video doesn't exist
     notFound();
   }
-}
-
-// Generate static params for common videos (optional)
-export function generateStaticParams() {
-  // Return paths for videos you want to pre-render
-  return [{ videoId: 'demo-video' }, { videoId: 'hls-example' }];
 }
