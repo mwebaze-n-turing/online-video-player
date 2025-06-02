@@ -1,4 +1,5 @@
-"use client";
+'use client';
+
 import { useEffect, useState } from 'react';
 
 interface VideoPlayerContainerProps {
@@ -6,30 +7,31 @@ interface VideoPlayerContainerProps {
   title?: string;
 }
 
-const VideoPlayerContainer: React.FC<VideoPlayerContainerProps> = ({ 
-  src = '/videos/sample.mp4', 
-  title = 'Video Player'
+const VideoPlayerContainer: React.FC<VideoPlayerContainerProps> = ({
+  src = '/videos/sample.mp4',
+  title = 'Video Player',
 }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1000); // Simulated loading delay
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div 
-      className="video-player-container flex justify-center items-center mx-auto my-8 relative" 
+    <div
+      className="video-player-container flex justify-center items-center mx-auto my-8 relative"
       style={{
         width: '100%',
         maxWidth: '960px',
         aspectRatio: '16 / 9',
         borderRadius: '8px',
         border: '2px solid #2d2d2d',
-        position: 'relative'
+        backgroundColor: '#000',
+        position: 'relative',
       }}
     >
       {isLoading ? (
@@ -37,11 +39,15 @@ const VideoPlayerContainer: React.FC<VideoPlayerContainerProps> = ({
           <p className="text-white text-xl font-semibold">Loading...</p>
         </div>
       ) : (
-        <video 
+        <video
           src={src}
           controls
           className="w-full h-full object-contain rounded-md"
           title={title}
+          style={{
+            borderRadius: '6px',
+            backgroundColor: '#000',
+          }}
         />
       )}
     </div>
