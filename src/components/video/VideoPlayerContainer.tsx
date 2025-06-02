@@ -23,7 +23,7 @@ const VideoPlayerContainer: React.FC<VideoPlayerContainerProps> = ({
 
   return (
     <div
-      className="video-player-container flex justify-center items-center mx-auto my-8 relative"
+      className="video-player-container relative flex justify-center items-center mx-auto my-8 px-4 sm:px-0"
       style={{
         width: '100%',
         maxWidth: '960px',
@@ -31,7 +31,6 @@ const VideoPlayerContainer: React.FC<VideoPlayerContainerProps> = ({
         borderRadius: '8px',
         border: '2px solid #2d2d2d',
         backgroundColor: '#000',
-        position: 'relative',
       }}
     >
       {isLoading ? (
