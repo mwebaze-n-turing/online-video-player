@@ -1,7 +1,7 @@
 // src/services/analytics.ts
 'use client';
 
-import muxData from '@mux/mux-data';
+import muxData from 'mux-embed';
 import { videoConfig } from '@/lib/video/clientConfig';
 
 export interface VideoMetadata {
