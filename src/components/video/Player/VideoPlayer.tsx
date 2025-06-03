@@ -1,145 +1,229 @@
-"use client"
-import React, { useRef, useState, useEffect } from 'react';
-import { VideoPlayerProps } from './types';
-import { useVideoPlayer } from '@/hooks/useVideoPlayer';
-import { ControlBar } from '@/components/video/Controls/ControlBar';
+// src/components/video/Player/index.tsx (updated with theme support)
+"use client";
+import { forwardRef, useRef, useState, useImperativeHandle, ForwardRefRenderFunction } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
+import PlayerLoader from './PlayerLoader';
+import { useVideoLoading } from '@/hooks/useVideoLoading';
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({
-  src,
-  poster,
-  autoPlay = false,
-  controls = true,
-  loop = false,
-  muted = false,
-  title,
-  className = '',
-  width = '100%',
-  height = 'auto',
-}) => {
+export interface VideoPlayerProps {
+  src: string;
+  poster?: string;
+  title?: string;
+  autoPlay?: boolean;
+  muted?: boolean;
+  loop?: boolean;
+  controls?: boolean;
+  preload?: 'auto' | 'metadata' | 'none';
+  className?: string;
+  onReady?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onEnd?: () => void;
+  onTimeUpdate?: (currentTime: number) => void;
+  onError?: (error: Error) => void;
+}
+
+export interface VideoPlayerRef {
+  videoElement: HTMLVideoElement | null;
+  play: () => Promise<void>;
+  pause: () => void;
+  togglePlay: () => void;
+  seek: (time: number) => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  getBuffered: () => TimeRanges | null;
+  toggleMute: () => void;
+  setVolume: (volume: number) => void;
+}
+
+const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayerProps> = (
+  {
+    src,
+    poster,
+    title,
+    autoPlay = false,
+    muted = false,
+    loop = false,
+    controls = true, // We'll use custom controls later that are theme-aware
+    preload = 'metadata',
+    className = '',
+    onReady,
+    onPlay,
+    onPause,
+    onEnd,
+    onTimeUpdate,
+    onError
+  },
+  ref
+) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isControlsVisible, setIsControlsVisible] = useState(true);
-  const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
-
+  const [isPlaying, setIsPlaying] = useState(false);
+  const { resolvedTheme } = useTheme();
+  
+  // Use our custom hook to track loading states
   const {
-    playing,
+    isLoading,
+    isMetadataLoaded,
+    isPlaybackReady,
     progress,
-    volume,
-    muted: isMuted,
-    fullscreen,
-    currentTime,
-    duration,
-    togglePlay,
-    toggleMute,
-    toggleFullscreen,
-    setVolume,
-    setProgress,
-    formatTime,
-  } = useVideoPlayer(videoRef, containerRef);
+    error,
+    setLoading
+  } = useVideoLoading(videoRef, {
+    autoReset: true,
+    resetTimeout: 2000
+  });
 
-  // Hide controls after 3 seconds of inactivity
-  const handleMouseMove = () => {
-    setIsControlsVisible(true);
-    
-    if (controlsTimeout) {
-      clearTimeout(controlsTimeout);
-    }
-    
-    const timeout = setTimeout(() => {
-      if (playing) {
-        setIsControlsVisible(false);
+  // Expose video element methods through ref
+  useImperativeHandle(ref, () => ({
+    videoElement: videoRef.current,
+    play: async () => {
+      try {
+        await videoRef.current?.play();
+      } catch (error) {
+        console.error('Error playing video:', error);
+        if (onError) onError(error as Error);
       }
-    }, 3000);
-    
-    setControlsTimeout(timeout);
+    },
+    pause: () => {
+      videoRef.current?.pause();
+    },
+    togglePlay: () => {
+      if (videoRef.current?.paused) {
+        videoRef.current.play().catch(error => {
+          console.error('Error playing video:', error);
+          if (onError) onError(error as Error);
+        });
+      } else {
+        videoRef.current?.pause();
+      }
+    },
+    seek: (time: number) => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = time;
+      }
+    },
+    getCurrentTime: () => videoRef.current?.currentTime || 0,
+    getDuration: () => videoRef.current?.duration || 0,
+    getBuffered: () => videoRef.current?.buffered || null,
+    toggleMute: () => {
+      if (videoRef.current) {
+        videoRef.current.muted = !videoRef.current.muted;
+      }
+    },
+    setVolume: (volume: number) => {
+      if (videoRef.current) {
+        videoRef.current.volume = Math.min(1, Math.max(0, volume));
+      }
+    }
+  }));
+
+  // Event handlers (unchanged)
+  const handlePlay = () => {
+    setIsPlaying(true);
+    if (onPlay) onPlay();
   };
 
-  // Clean up timeout on component unmount
-  useEffect(() => {
-    return () => {
-      if (controlsTimeout) {
-        clearTimeout(controlsTimeout);
-      }
-    };
-  }, [controlsTimeout]);
+  const handlePause = () => {
+    setIsPlaying(false);
+    if (onPause) onPause();
+  };
 
-  // Handle seeking in the video
-  const handleSeek = (seekTime: number) => {
-    if (videoRef.current) {
-      const newTime = (seekTime / 100) * duration;
-      videoRef.current.currentTime = newTime;
+  const handleEnded = () => {
+    setIsPlaying(false);
+    if (onEnd) onEnd();
+  };
+
+  const handleTimeUpdate = () => {
+    if (onTimeUpdate && videoRef.current) {
+      onTimeUpdate(videoRef.current.currentTime);
     }
   };
+
+  const handleCanPlayThrough = () => {
+    if (onReady) onReady();
+  };
+
+  const handleError = () => {
+    const videoError = new Error('Video playback error');
+    if (onError) onError(videoError);
+    setLoading(false);
+  };
+
+  // Apply theme-based classes
+  const playerContainerClasses = `
+    video-player-container
+    relative
+    theme-transition
+    ${resolvedTheme === 'dark' 
+      ? 'bg-black border-gray-800' 
+      : 'bg-black border-gray-200'}
+    ${className}
+  `;
 
   return (
-    <div 
-      className={`video-player relative overflow-hidden bg-black rounded-lg ${className}`}
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => playing && setIsControlsVisible(false)}
-    >
-      {/* Video container with proper positioning */}
-      <div className="relative w-full h-full bg-black rounded-lg overflow-hidden">
-        <video
-          ref={videoRef}
-          src={src}
-          poster={poster}
-          autoPlay={autoPlay}
-          muted={muted}
-          loop={loop}
-          className="w-full h-full"
-          onClick={togglePlay}
-          playsInline
-        />
-      </div>
+    <div className={playerContainerClasses}>
+      {/* Video element */}
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        title={title}
+        autoPlay={autoPlay}
+        muted={muted}
+        loop={loop}
+        controls={controls} // Native controls for now, we'll replace with custom
+        preload={preload}
+        className="w-full h-full"
+        onPlay={handlePlay}
+        onPause={handlePause}
+        onEnded={handleEnded}
+        onTimeUpdate={handleTimeUpdate}
+        onCanPlayThrough={handleCanPlayThrough}
+        onError={handleError}
+      />
       
-      {/* Video Title Overlay */}
+      {/* Loading overlay - now theme aware */}
+      <PlayerLoader 
+        isLoading={isLoading} 
+        showThumb={true}
+        thumbnail={poster}
+        // Pass theme for loader styling
+        className={resolvedTheme === 'dark' ? 'bg-black bg-opacity-70' : 'bg-black bg-opacity-50'}
+      />
+      
+      {/* Accessibility info */}
       {title && (
-        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 to-transparent z-10">
-          <h2 className="text-white text-lg font-semibold">{title}</h2>
-        </div>
+        <span className="sr-only">
+          {isPlaying ? `Now playing: ${title}` : `Video paused: ${title}`}
+        </span>
       )}
       
-      {/* Subtitle Area */}
-      <div className="absolute bottom-20 left-4 right-4 text-center text-white text-lg z-10">
-        {/* Subtitles will be rendered here */}
-      </div>
-      
-      {/* Play/Pause Overlay */}
-      {!playing && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <button 
-            onClick={togglePlay}
-            className="p-4 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
-            aria-label="Play video"
-          >
-            <svg viewBox='0 0 24 24' width='24' height='24' className='w-10 h-10 fill-current text-white'>
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </button>
-        </div>
+      {/* Loading progress info for screen readers */}
+      {isLoading && (
+        <span className="sr-only">
+          {isMetadataLoaded 
+            ? `Loading video: ${Math.round(progress)}% complete` 
+            : 'Preparing video player...'}
+        </span>
       )}
       
-      {/* Integrated Control Bar Component */}
-      {controls && (
-        <div className={`transition-opacity ${isControlsVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <ControlBar
-            isPlaying={playing}
-            currentTime={currentTime}
-            duration={duration}
-            volume={volume}
-            isMuted={isMuted}
-            isFullscreen={fullscreen}
-            onPlayPause={togglePlay}
-            onVolumeChange={setVolume}
-            onToggleMute={toggleMute}
-            onSeek={handleSeek}
-            onFullscreen={toggleFullscreen}
-          />
+      {/* Error message - now theme aware */}
+      {error && (
+        <div className={`
+          absolute inset-0 flex items-center justify-center 
+          ${resolvedTheme === 'dark' 
+            ? 'bg-gray-900 bg-opacity-90 text-white' 
+            : 'bg-black bg-opacity-75 text-white'}
+        `}>
+          <div className="text-center p-4">
+            <p className="text-xl mb-2">Error loading video</p>
+            <p>{error.message}</p>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
+export const VideoPlayer = forwardRef(VideoPlayerComponent);
 export default VideoPlayer;

@@ -1,16 +1,16 @@
 // src/app/layout.tsx (updated with theme support)
 import { Metadata } from 'next';
-import { getDefaultSiteMetadata } from '@/lib/metadata/video-metadata';
+// import { getDefaultSiteMetadata } from '@/lib/metadata/video-metadata';
 import { Providers } from './_providers';
 import '@/styles/globals.css';
 
-Generate default metadata for the site
-export const metadata: Metadata = getDefaultSiteMetadata({
-  siteName: process.env.NEXT_PUBLIC_SITE_NAME || 'Video Player App',
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com',
-  siteLogoUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com'}/logo.png`,
-  siteTwitterHandle: process.env.NEXT_PUBLIC_TWITTER_HANDLE,
-});
+// Generate default metadata for the site
+// export const metadata: Metadata = getDefaultSiteMetadata({
+//   siteName: process.env.NEXT_PUBLIC_SITE_NAME || 'Video Player App',
+//   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com',
+//   siteLogoUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com'}/logo.png`,
+//   siteTwitterHandle: process.env.NEXT_PUBLIC_TWITTER_HANDLE,
+// });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

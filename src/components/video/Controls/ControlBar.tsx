@@ -1,109 +1,231 @@
-import React from 'react';
+// src/components/video/Controls/ControlBar.tsx
+import { FC, useState, useEffect, useCallback } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ControlBarProps {
-  isPlaying: boolean;
+  videoDuration: number;
   currentTime: number;
-  duration: number;
+  bufferedTime: number;
+  isPlaying: boolean;
   volume: number;
   isMuted: boolean;
-  isFullscreen: boolean;
   onPlayPause: () => void;
+  onSeek: (time: number) => void;
   onVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
-  onSeek: (time: number) => void;
-  onFullscreen: () => void;
+  onToggleFullscreen: () => void;
+  className?: string;
 }
 
-export const ControlBar: React.FC<ControlBarProps> = ({
+export const ControlBar: FC<ControlBarProps> = ({
+  videoDuration,
+  currentTime,
+  bufferedTime,
   isPlaying,
-  currentTime = 0,
-  duration = 0,
-  volume = 1,
-  isMuted = false,
-  isFullscreen = false,
+  volume,
+  isMuted,
   onPlayPause,
+  onSeek,
   onVolumeChange,
   onToggleMute,
-  onSeek,
-  onFullscreen,
+  onToggleFullscreen,
+  className = '',
 }) => {
-  // Format time in MM:SS format
-  const formatTime = (timeInSeconds: number): string => {
-    if (!timeInSeconds) return '0:00';
-
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const { resolvedTheme } = useTheme();
+  const [isDragging, setIsDragging] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [isControlsVisible, setIsControlsVisible] = useState(true);
+  
+  // Format time (mm:ss)
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Calculate progress percentage
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Auto-hide controls after inactivity
+  useEffect(() => {
+    let hideTimeout: NodeJS.Timeout;
+    
+    if (isPlaying && !isDragging) {
+      hideTimeout = setTimeout(() => {
+        setIsControlsVisible(false);
+      }, 3000);
+    }
+    
+    return () => {
+      if (hideTimeout) clearTimeout(hideTimeout);
+    };
+  }, [isPlaying, isDragging]);
+
+  // Handle mouse movement to show controls
+  const handleMouseMove = useCallback(() => {
+    setIsControlsVisible(true);
+  }, []);
+
+  // Apply theme-based styling
+  const controlsClasses = `
+    control-bar
+    absolute bottom-0 left-0 right-0
+    px-4 py-2 
+    transition-opacity duration-300
+    ${isControlsVisible ? 'opacity-100' : 'opacity-0'}
+    ${resolvedTheme === 'dark' 
+      ? 'bg-gradient-to-t from-gray-900 to-transparent text-white' 
+      : 'bg-gradient-to-t from-gray-800 to-transparent text-white'}
+    ${className}
+  `;
+
+  // Button styles based on theme
+  const buttonClasses = `
+    p-2 rounded-full 
+    focus:outline-none focus:ring-2
+    theme-transition
+    ${resolvedTheme === 'dark'
+      ? 'text-gray-200 hover:text-white focus:ring-blue-500'
+      : 'text-gray-200 hover:text-white focus:ring-blue-400'}
+  `;
+
+  // Progress bar styles based on theme
+  const progressBarClasses = `
+    relative w-full h-2 my-2 rounded-full cursor-pointer
+    ${resolvedTheme === 'dark'
+      ? 'bg-gray-700'
+      : 'bg-gray-600'}
+  `;
+
+  const progressFillClasses = `
+    absolute top-0 left-0 h-full rounded-full
+    ${resolvedTheme === 'dark'
+      ? 'bg-blue-500'
+      : 'bg-blue-400'}
+  `;
+
+  const bufferedFillClasses = `
+    absolute top-0 left-0 h-full rounded-full
+    ${resolvedTheme === 'dark'
+      ? 'bg-gray-600'
+      : 'bg-gray-500'}
+  `;
+
+  // Volume slider theme
+  const volumeSliderClasses = `
+    w-20 h-1 rounded-full appearance-none cursor-pointer
+    ${resolvedTheme === 'dark'
+      ? 'bg-gray-700'
+      : 'bg-gray-600'}
+  `;
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-black/75 backdrop-blur-sm text-white p-4 flex items-center justify-between">
-      {/* Left side controls - Play/Pause and time */}
-      <div className="flex items-center space-x-3">
-        {/* Play/Pause Button */}
-        <button onClick={onPlayPause} className="p-2 rounded hover:bg-white/10 transition-colors" aria-label={isPlaying ? 'Pause' : 'Play'}>
-          <svg viewBox="0 0 24 24" width="24" height="24" className="w-6 h-6 fill-current">
-            {isPlaying ? <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /> : <path d="M8 5v14l11-7z" />}
-          </svg>
-        </button>
-
-        {/* Time display */}
-        <div className="text-sm font-medium">
-          <span>{formatTime(currentTime)}</span>
-          <span className="mx-1">/</span>
-          <span>{formatTime(duration)}</span>
-        </div>
+    <div 
+      className={controlsClasses}
+      onMouseMove={handleMouseMove}
+    >
+      {/* Progress bar / seek bar */}
+      <div className={progressBarClasses} onClick={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        onSeek(videoDuration * pos);
+      }}>
+        {/* Buffered progress */}
+        <div 
+          className={bufferedFillClasses} 
+          style={{ width: `${(bufferedTime / videoDuration) * 100}%` }}
+        />
+        
+        {/* Playback progress */}
+        <div 
+          className={progressFillClasses} 
+          style={{ width: `${(currentTime / videoDuration) * 100}%` }}
+        />
       </div>
-
-      {/* Progress bar */}
-      <div className="flex-grow mx-4 h-1 bg-gray-600 rounded overflow-hidden">
-        <div className="h-full bg-white" style={{ width: `${progress}%` }} />
-      </div>
-
-      {/* Right side controls - Volume and Fullscreen */}
-      <div className="flex items-center space-x-3">
-        {/* Volume Button */}
-        <button onClick={onToggleMute} className="p-2 rounded hover:bg-white/10 transition-colors" aria-label={isMuted ? 'Unmute' : 'Mute'}>
-          <svg viewBox="0 0 24 24" width="24" height="24" className="w-6 h-6 fill-current">
-            {isMuted ? (
-              <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+      
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          {/* Play/Pause button */}
+          <button 
+            className={buttonClasses}
+            onClick={onPlayPause}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
             ) : (
-              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+              </svg>
             )}
-          </svg>
-        </button>
-
-        {/* Volume Slider (can be implemented as needed) */}
-        <div className="hidden sm:block w-20">
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={volume}
-            className="w-full"
-            onChange={e => onVolumeChange(parseFloat(e.target.value))}
-            aria-label="Volume level"
-          />
+          </button>
+          
+          {/* Volume control */}
+          <div className="relative flex items-center">
+            <button 
+              className={buttonClasses}
+              onClick={onToggleMute}
+              onMouseEnter={() => setShowVolumeSlider(true)}
+              onMouseLeave={() => setShowVolumeSlider(false)}
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted || volume === 0 ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              ) : volume < 0.5 ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 3.75a.75.75 0 00-1.264-.546L5.46 7H2.75A1.75 1.75 0 001 8.75v2.5c0 .966.784 1.75 1.75 1.75h2.71l3.276 3.796a.75.75 0 001.264-.546V3.75zm2.004 3.459a.75.75 0 00-1.008 1.116 2.5 2.5 0 010 3.35.75.75 0 001.008 1.116 4 4 0 000-5.582z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 3.75a.75.75 0 00-1.264-.546L5.46 7H2.75A1.75 1.75 0 001 8.75v2.5c0 .966.784 1.75 1.75 1.75h2.71l3.276 3.796a.75.75 0 001.264-.546V3.75zM14.751 9.05a.75.75 0 00-1.026.273 7.532 7.532 0 010 1.354.75.75 0 101.026.274 9.032 9.032 0 000-1.9zm-2.245-.643a.75.75 0 00-1.008 1.116 2.5 2.5 0 010 3.35.75.75 0 001.008 1.116 4 4 0 000-5.582z" clipRule="evenodd" />
+                </svg>
+              )}
+            </button>
+            
+            {/* Volume slider (conditionally rendered) */}
+            {showVolumeSlider && (
+              <div 
+                className="absolute left-0 bottom-10 p-2 rounded theme-transition"
+                style={{ 
+                  backgroundColor: resolvedTheme === 'dark' ? 'rgba(17, 24, 39, 0.9)' : 'rgba(0, 0, 0, 0.7)'
+                }}
+                onMouseEnter={() => setShowVolumeSlider(true)}
+                onMouseLeave={() => setShowVolumeSlider(false)}
+              >
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+                  className={volumeSliderClasses}
+                  aria-label="Volume"
+                />
+              </div>
+            )}
+          </div>
+          
+          {/* Time display */}
+          <div className="text-sm text-white">
+            {formatTime(currentTime)} / {formatTime(videoDuration)}
+          </div>
         </div>
-
-        {/* Fullscreen Button */}
-        <button
-          onClick={onFullscreen}
-          className="p-2 rounded hover:bg-white/10 transition-colors"
-          aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-        >
-          <svg viewBox="0 0 24 24" width="24" height="24" className="w-6 h-6 fill-current">
-            {isFullscreen ? (
-              <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
-            ) : (
-              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
-            )}
-          </svg>
-        </button>
+        
+        {/* Right controls */}
+        <div className="flex items-center space-x-2">
+          {/* Fullscreen button */}
+          <button 
+            className={buttonClasses}
+            onClick={onToggleFullscreen}
+            aria-label="Toggle fullscreen"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );
