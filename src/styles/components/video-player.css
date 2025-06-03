@@ -1,0 +1,96 @@
+/* src/styles/components/video-player.css */
+
+/* Base responsive player styling */
+.responsive-player-wrapper {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  transition:
+    width 0.3s ease-in-out,
+    padding 0.3s ease-in-out;
+}
+
+/* Container for the player with aspect ratio preservation */
+.player-container {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Aspect ratio containers */
+.aspect-container {
+  position: relative;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Common aspect ratios */
+.aspect-16-9 {
+  padding-top: 56.25%; /* 9/16 = 0.5625 */
+}
+
+.aspect-4-3 {
+  padding-top: 75%; /* 3/4 = 0.75 */
+}
+
+.aspect-1-1 {
+  padding-top: 100%; /* 1/1 = 1 */
+}
+
+.aspect-21-9 {
+  padding-top: 42.85%; /* 9/21 = 0.4285 */
+}
+
+/* Player content inside aspect ratio container */
+.player-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Responsive breakpoints */
+@media (min-width: 640px) {
+  .responsive-player-wrapper {
+    width: 90%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-player-wrapper {
+    /* Default max-width is 800px but can be overridden via inline styles */
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .player-container {
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.4),
+      0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Container query support (if browser supports it) */
+@supports (container-type: inline-size) {
+  .responsive-player-wrapper {
+    container-type: inline-size;
+    container-name: player;
+  }
+
+  /* Adjust controls based on container size */
+  @container player (max-width: 400px) {
+    .small-screen-only {
+      display: none;
+    }
+  }
+}
