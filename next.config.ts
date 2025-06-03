@@ -4,7 +4,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  
+
   // Handle media worker files correctly
   webpack: (config, { isServer }) => {
     // Configure worker loading for HLS.js and other libraries
@@ -45,12 +45,12 @@ const nextConfig = {
 
     return config;
   },
-  
+
   // Handle media files
   images: {
-    domains: ['example.com', 'your-video-cdn.com'],
+    domains: ['example.com', 'your-video-cdn.com', 'images.unsplash.com'],
   },
-  
+
   // Properly handle media files in the build
   output: 'standalone',
 };
