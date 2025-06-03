@@ -68,28 +68,34 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       onMouseMove={handleMouseMove}
       onMouseLeave={() => playing && setIsControlsVisible(false)}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        poster={poster}
-        autoPlay={autoPlay}
-        muted={muted}
-        loop={loop}
-        className="w-full h-full"
-        onClick={togglePlay}
-        playsInline
-      />
+      {/* Video container with proper positioning */}
+      <div className="relative w-full h-full bg-black rounded-lg overflow-hidden">
+        <video
+          ref={videoRef}
+          src={src}
+          poster={poster}
+          autoPlay={autoPlay}
+          muted={muted}
+          loop={loop}
+          className="w-full h-full"
+          onClick={togglePlay}
+          playsInline
+        />
+      </div>
 
       {/* Video Title Overlay */}
       {title && (
-        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 to-transparent">
+        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 to-transparent z-10">
           <h2 className="text-white text-lg font-semibold">{title}</h2>
         </div>
       )}
 
+      {/* Subtitle Area */}
+      <div className="absolute bottom-20 left-4 right-4 text-center text-white text-lg z-10">{/* Subtitles will be rendered here */}</div>
+
       {/* Play/Pause Overlay */}
       {!playing && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center z-10">
           <button onClick={togglePlay} className="p-4 rounded-full bg-black/50 hover:bg-black/70 transition-colors" aria-label="Play video">
             <svg viewBox="0 0 24 24" width="24" height="24" className="w-10 h-10 fill-current text-white">
               <path d="M8 5v14l11-7z" />
@@ -101,7 +107,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Video Controls */}
       {controls && (
         <div
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-2 transition-opacity ${
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 z-20 transition-opacity ${
             isControlsVisible ? 'opacity-100' : 'opacity-0'
           }`}
         >
