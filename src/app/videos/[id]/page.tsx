@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Metadata, ResolvingMetadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getVideoById } from '@/lib/api/videos';
+// import { getVideoById } from '@/lib/api/videos';
 import { generateNextJSVideoMetadata } from '@/lib/metadata/video-metadata';
 import { VideoPlayer } from '@/components/video/Player';
 import { ResponsivePlayerWrapper } from '@/components/video/Player/ResponsivePlayerWrapper';
@@ -20,12 +20,12 @@ interface VideoPageProps {
 }
 
 // Generate dynamic metadata for the page (server-side)
-export async function generateMetadata(
-  { params }: VideoPageProps,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  // ... existing metadata generation code ...
-}
+// export async function generateMetadata(
+//   { params }: VideoPageProps,
+//   parent: ResolvingMetadata
+// ): Promise<Metadata> {
+//   // ... existing metadata generation code ...
+// }
 
 // Client-side Video Page component with responsive wrapper
 function VideoPageClient({ videoId }: { videoId: string }) {
@@ -74,7 +74,7 @@ function VideoPageClient({ videoId }: { videoId: string }) {
       >
         {video ? (
           <VideoPlayer 
-            src={video.url} 
+            src={video.url ?? "/videos/featured.mp4"} 
             poster={video.thumbnail}
             autoPlay={false}
             controls
