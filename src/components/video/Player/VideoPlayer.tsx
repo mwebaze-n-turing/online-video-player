@@ -6,7 +6,7 @@ import PlayerLoader from './PlayerLoader';
 import { useVideoLoading } from '@/hooks/useVideoLoading';
 
 export interface VideoPlayerProps {
-  src: string;
+  src?: string;
   poster?: string;
   title?: string;
   autoPlay?: boolean;
@@ -38,7 +38,7 @@ export interface VideoPlayerRef {
 
 const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayerProps> = (
   {
-    src,
+    src = "/videos/featured.mp4",
     poster,
     title,
     autoPlay = false,
@@ -165,7 +165,7 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
       {/* Video element */}
       <video
         ref={videoRef}
-        src={src}
+        src={src} // Default video source, can be overridden by props
         poster={poster}
         title={title}
         autoPlay={autoPlay}

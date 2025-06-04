@@ -9,12 +9,12 @@ import VolumeControl from '@/components/video/Controls/Volume';
 import FullScreenButton from '@/components/video/Controls/FullScreen';
 
 interface PlayerProps {
-  videoSrc: string;
+  videoSrc?: string;
   posterSrc?: string;
   aspectRatio?: '16:9' | '4:3' | '21:9' | '1:1' | '9:16';
 }
 
-export default function Player({ videoSrc, posterSrc, aspectRatio = '16:9' }: PlayerProps): JSX.Element {
+export default function Player({ videoSrc = "/videos/featured.mp4", posterSrc, aspectRatio = '16:9' }: PlayerProps): JSX.Element {
   const { playerState, togglePlay } = usePlayerContext();
   const [controlsVisible, setControlsVisible] = useState(true);
 

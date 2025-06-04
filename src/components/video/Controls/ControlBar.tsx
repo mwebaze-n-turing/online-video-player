@@ -1,5 +1,5 @@
 // src/components/video/Controls/ControlBar.tsx
-import { FC, useState, useEffect, useCallback } from 'react';
+import { FC, useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface ControlBarProps {
@@ -15,6 +15,7 @@ interface ControlBarProps {
   onToggleMute: () => void;
   onToggleFullscreen: () => void;
   className?: string;
+  videoRef: React.RefObject<HTMLVideoElement>;
 }
 
 export const ControlBar: FC<ControlBarProps> = ({
@@ -30,11 +31,15 @@ export const ControlBar: FC<ControlBarProps> = ({
   onToggleMute,
   onToggleFullscreen,
   className = '',
+  videoRef
 }) => {
   const { resolvedTheme } = useTheme();
   const [isDragging, setIsDragging] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(true);
+  const [isHovering, setIsHovering] = useState(false);
+  const [hoverPosition, setHoverPosition] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
   
   // Format time (mm:ss)
   const formatTime = (seconds: number): string => {
@@ -62,6 +67,32 @@ export const ControlBar: FC<ControlBarProps> = ({
   const handleMouseMove = useCallback(() => {
     setIsControlsVisible(true);
   }, []);
+
+    // Handle progress bar click for seeking
+    const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!progressBarRef.current || !videoRef.current) return;
+      
+      const progressBar = progressBarRef.current;
+      const rect = progressBar.getBoundingClientRect();
+      const clickPosition = (e.clientX - rect.left) / rect.width;
+      
+      // Calculate the seek time based on click position (0 to 1) and video duration
+      const seekTime = clickPosition * videoRef.current.duration;
+      
+      // Seek to the calculated time
+      onSeek(seekTime);
+    };
+    
+    // Handle mouse movement over progress bar for hover effect
+    const handleProgressBarMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!progressBarRef.current) return;
+      
+      const progressBar = progressBarRef.current;
+      const rect = progressBar.getBoundingClientRect();
+      const hoverPercent = ((e.clientX - rect.left) / rect.width) * 100;
+      
+      setHoverPosition(hoverPercent);
+    };
 
   // Apply theme-based styling
   const controlsClasses = `
@@ -94,6 +125,13 @@ export const ControlBar: FC<ControlBarProps> = ({
       : 'bg-gray-600'}
   `;
 
+    const progressBarBackgroundClasses = `
+      absolute top-0 left-0 h-full w-full rounded-full
+      ${resolvedTheme === 'dark'
+        ? 'bg-gray-700'
+        : 'bg-gray-600'}
+    `;
+
   const progressFillClasses = `
     absolute top-0 left-0 h-full rounded-full
     ${resolvedTheme === 'dark'
@@ -107,6 +145,11 @@ export const ControlBar: FC<ControlBarProps> = ({
       ? 'bg-gray-600'
       : 'bg-gray-500'}
   `;
+
+    const hoverIndicatorClasses = `
+      absolute top-0 h-full w-0.5 bg-white opacity-50
+      transition-opacity duration-100
+    `;
 
   // Volume slider theme
   const volumeSliderClasses = `
@@ -122,11 +165,16 @@ export const ControlBar: FC<ControlBarProps> = ({
       onMouseMove={handleMouseMove}
     >
       {/* Progress bar / seek bar */}
-      <div className={progressBarClasses} onClick={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const pos = (e.clientX - rect.left) / rect.width;
-        onSeek(videoDuration * pos);
-      }}>
+      <div 
+        className={progressBarClasses}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        onMouseMove={handleProgressBarMouseMove}
+        onClick={handleProgressBarClick}
+        ref={progressBarRef}
+      >
+        {/* Base progress bar */}
+        <div className={progressBarBackgroundClasses}></div>
         {/* Buffered progress */}
         <div 
           className={bufferedFillClasses} 
@@ -138,6 +186,14 @@ export const ControlBar: FC<ControlBarProps> = ({
           className={progressFillClasses} 
           style={{ width: `${(currentTime / videoDuration) * 100}%` }}
         />
+
+        {/* Hover indicator */}
+        {isHovering && (
+          <div 
+            className={hoverIndicatorClasses} 
+            style={{ left: `${hoverPosition}%` }}
+          />
+        )}
       </div>
       
       <div className="flex items-center justify-between">

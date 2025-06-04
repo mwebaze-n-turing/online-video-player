@@ -178,7 +178,7 @@ export const VideoPlayerContainer: React.FC<VideoPlayerContainerProps> = ({
       >
         <VideoPlayer
           ref={videoRef}
-          src={src}
+          src="/videos/featured.mp4" // Default video source, can be overridden by props
           poster={poster}
           title={title}
           autoPlay={autoPlay}
