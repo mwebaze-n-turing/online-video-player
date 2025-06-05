@@ -1,5 +1,6 @@
 // Controls index file
 export { default as VideoPlayerControls } from './VideoPlayerControls';
+export { default as VideoPlayerControlsEnhanced } from './VideoPlayerControlsEnhanced';
 export { default as EnhancedVolumeControl } from './EnhancedVolumeControl';
 export { default as ControlBar } from './ControlBar';
 export { default as ControlButton } from './ControlButton';
