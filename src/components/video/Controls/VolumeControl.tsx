@@ -1,57 +1,64 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  VolumeX, // Muted icon
-  Volume, // Low volume icon
-  Volume1, // Medium volume icon
-  Volume2 // High volume icon
-} from 'lucide-react'; // Assuming use of Lucide icons based on modern practices
+  VolumeX,
+  Volume,
+  Volume1,
+  Volume2
+} from 'lucide-react';
 
 interface VolumeControlProps {
   videoRef: React.RefObject<HTMLVideoElement>;
 }
 
 const VolumeControl: React.FC<VolumeControlProps> = ({ videoRef }) => {
-  // State for volume level (0 to 1) and muted state
   const [volume, setVolume] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(false);
 
   // Load volume settings from localStorage on component mount
   useEffect(() => {
-    const savedVolume = localStorage.getItem('videoPlayerVolume');
-    const savedMuted = localStorage.getItem('videoPlayerMuted');
-    
-    // Apply saved volume if available
-    if (savedVolume !== null) {
-      const parsedVolume = parseFloat(savedVolume);
-      setVolume(parsedVolume);
-      if (videoRef.current) {
-        videoRef.current.volume = parsedVolume;
+    try {
+      const savedVolume = localStorage.getItem('videoPlayerVolume');
+      const savedMuted = localStorage.getItem('videoPlayerMuted');
+      
+      if (savedVolume !== null && !isNaN(parseFloat(savedVolume))) {
+        const parsedVolume = Math.min(Math.max(parseFloat(savedVolume), 0), 1);
+        setVolume(parsedVolume);
+        if (videoRef.current) {
+          videoRef.current.volume = parsedVolume;
+        }
       }
-    }
-    
-    // Apply saved muted state if available
-    if (savedMuted !== null) {
-      const parsedMuted = savedMuted === 'true';
-      setIsMuted(parsedMuted);
-      if (videoRef.current) {
-        videoRef.current.muted = parsedMuted;
+      
+      if (savedMuted !== null) {
+        const parsedMuted = savedMuted === 'true';
+        setIsMuted(parsedMuted);
+        if (videoRef.current) {
+          videoRef.current.muted = parsedMuted;
+        }
       }
+    } catch (error) {
+      console.warn('Error loading volume settings:', error);
     }
   }, [videoRef]);
 
-  // Toggle between muted and unmuted states
+  // Save settings to localStorage
+  const saveSettings = (newVolume: number, newMuted: boolean) => {
+    try {
+      localStorage.setItem('videoPlayerVolume', newVolume.toString());
+      localStorage.setItem('videoPlayerMuted', newMuted.toString());
+    } catch (error) {
+      console.warn('Error saving volume settings:', error);
+    }
+  };
+
   const toggleMute = () => {
     if (!videoRef.current) return;
     
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
     videoRef.current.muted = newMutedState;
-    
-    // Save to localStorage
-    localStorage.setItem('videoPlayerMuted', newMutedState.toString());
+    saveSettings(volume, newMutedState);
   };
 
-  // Handle volume change from input slider
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!videoRef.current) return;
     
@@ -59,62 +66,59 @@ const VolumeControl: React.FC<VolumeControlProps> = ({ videoRef }) => {
     setVolume(newVolume);
     videoRef.current.volume = newVolume;
     
-    // If volume is set to 0, mute the video
+    let newMutedState = isMuted;
     if (newVolume === 0 && !isMuted) {
+      newMutedState = true;
       setIsMuted(true);
       videoRef.current.muted = true;
-    } 
-    // If volume is increased from 0 and was muted, unmute
-    else if (newVolume > 0 && isMuted) {
+    } else if (newVolume > 0 && isMuted) {
+      newMutedState = false;
       setIsMuted(false);
       videoRef.current.muted = false;
     }
     
-    // Save to localStorage
-    localStorage.setItem('videoPlayerVolume', newVolume.toString());
-    localStorage.setItem('videoPlayerMuted', videoRef.current.muted.toString());
+    saveSettings(newVolume, newMutedState);
   };
 
-  // Determine which icon to display based on volume and muted state
-const renderVolumeIcon = () => {
-  if (isMuted || volume === 0) {
-    return <VolumeX className="volume-icon" />;
-  } else if (volume <= 0.33) {
-    return <Volume className="volume-icon" />;
-  } else if (volume <= 0.66) {
-    return <Volume1 className="volume-icon" />;
-  } else {
-    return <Volume2 className="volume-icon" />;
-  }
-};
+  // Rest of the component remains the same...
+  const renderVolumeIcon = () => {
+    if (isMuted || volume === 0) {
+      return <VolumeX className="volume-icon" />;
+    } else if (volume <= 0.33) {
+      return <Volume className="volume-icon" />;
+    } else if (volume <= 0.66) {
+      return <Volume1 className="volume-icon" />;
+    } else {
+      return <Volume2 className="volume-icon" />;
+    }
+  };
 
-return (
-  <div className="volume-control-container">
-    <button 
-      className="volume-button"
-      onClick={toggleMute}
-      aria-label={isMuted ? "Unmute" : "Mute"}
-    >
-      {renderVolumeIcon()}
-    </button>
-    
-    <div className="volume-slider-container">
-      <input
-        type="range"
-        className="volume-slider"
-        min="0"
-        max="1"
-        step="0.01"
-        value={volume}
-        onChange={handleVolumeChange}
-        aria-label="Volume"
-        style={{
-          // Use CSS variables for dynamic styling based on volume level
-          '--volume-level': `${volume * 100}%`
-        } as React.CSSProperties}
-      />
+  return (
+    <div className="volume-control-container">
+      <button 
+        className="volume-button"
+        onClick={toggleMute}
+        aria-label={isMuted ? "Unmute" : "Mute"}
+      >
+        {renderVolumeIcon()}
+      </button>
+      
+      <div className="volume-slider-container">
+        <input
+          type="range"
+          className="volume-slider"
+          min="0"
+          max="1"
+          step="0.01"
+          value={volume}
+          onChange={handleVolumeChange}
+          aria-label="Volume"
+          style={{
+            '--volume-level': `${volume * 100}%`
+          } as React.CSSProperties}
+        />
+      </div>
     </div>
-  </div>
   );
 };
 
