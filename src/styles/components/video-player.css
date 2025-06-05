@@ -345,3 +345,61 @@
   width: 100%;
   height: auto;
 }
+
+.touch-ripple {
+  position: absolute;
+  background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%);
+  transform: scale(0);
+  opacity: 0;
+  transition: opacity 0.5s, transform 0.5s;
+}
+
+/* Apply the ripple animation on touch/click */
+button:active .touch-ripple {
+  opacity: 1;
+  transform: scale(1.5);
+}
+
+.volume-slider {
+  height: 4px;
+  border-radius: 2px;
+  appearance: none;
+  background: var(--track-filled);
+  transition: all 0.2s ease;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+.volume-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  background: #3b82f6;
+}
+
+.volume-slider:active::-webkit-slider-thumb {
+  transform: scale(1.1);
+}
+
+/* Similar styles for other browser engines */
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.volume-slider:hover::-moz-range-thumb {
+  transform: scale(1.2);
+  background: #3b82f6;
+}

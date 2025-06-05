@@ -1,7 +1,7 @@
 // src/app/_providers.tsx
 'use client';
 
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
 // Import theme styles

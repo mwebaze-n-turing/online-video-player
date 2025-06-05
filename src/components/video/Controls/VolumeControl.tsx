@@ -1,120 +1,57 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  VolumeX,
-  Volume,
-  Volume1,
-  Volume2
-} from 'lucide-react';
+// src/components/video/Controls/VolumeControl.tsx
+import React, { useState } from 'react';
+import { VolumeUp, VolumeDown, VolumeMute } from 'your-icon-library';
+import ControlButton from './ControlButton';
 
 interface VolumeControlProps {
-  videoRef: React.RefObject<HTMLVideoElement>;
+  volume: number;
+  isMuted: boolean;
+  onVolumeChange: (volume: number) => void;
+  onMuteToggle: () => void;
 }
 
-const VolumeControl: React.FC<VolumeControlProps> = ({ videoRef }) => {
-  const [volume, setVolume] = useState<number>(1);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+const VolumeControl: React.FC<VolumeControlProps> = ({ volume, isMuted, onVolumeChange, onMuteToggle }) => {
+  const [isSliderVisible, setIsSliderVisible] = useState(false);
 
-  // Load volume settings from localStorage on component mount
-  useEffect(() => {
-    try {
-      const savedVolume = localStorage.getItem('videoPlayerVolume');
-      const savedMuted = localStorage.getItem('videoPlayerMuted');
-      
-      if (savedVolume !== null && !isNaN(parseFloat(savedVolume))) {
-        const parsedVolume = Math.min(Math.max(parseFloat(savedVolume), 0), 1);
-        setVolume(parsedVolume);
-        if (videoRef.current) {
-          videoRef.current.volume = parsedVolume;
-        }
-      }
-      
-      if (savedMuted !== null) {
-        const parsedMuted = savedMuted === 'true';
-        setIsMuted(parsedMuted);
-        if (videoRef.current) {
-          videoRef.current.muted = parsedMuted;
-        }
-      }
-    } catch (error) {
-      console.warn('Error loading volume settings:', error);
-    }
-  }, [videoRef]);
-
-  // Save settings to localStorage
-  const saveSettings = (newVolume: number, newMuted: boolean) => {
-    try {
-      localStorage.setItem('videoPlayerVolume', newVolume.toString());
-      localStorage.setItem('videoPlayerMuted', newMuted.toString());
-    } catch (error) {
-      console.warn('Error saving volume settings:', error);
-    }
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    
-    const newMutedState = !isMuted;
-    setIsMuted(newMutedState);
-    videoRef.current.muted = newMutedState;
-    saveSettings(volume, newMutedState);
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!videoRef.current) return;
-    
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    videoRef.current.volume = newVolume;
-    
-    let newMutedState = isMuted;
-    if (newVolume === 0 && !isMuted) {
-      newMutedState = true;
-      setIsMuted(true);
-      videoRef.current.muted = true;
-    } else if (newVolume > 0 && isMuted) {
-      newMutedState = false;
-      setIsMuted(false);
-      videoRef.current.muted = false;
-    }
-    
-    saveSettings(newVolume, newMutedState);
-  };
-
-  const renderVolumeIcon = () => {
-    if (isMuted || volume === 0) {
-      return <VolumeX className="volume-icon" />;
-    } else if (volume <= 0.33) {
-      return <Volume className="volume-icon" />;
-    } else if (volume <= 0.66) {
-      return <Volume1 className="volume-icon" />;
-    } else {
-      return <Volume2 className="volume-icon" />;
-    }
+  // Determine which icon to show based on volume state
+  const getVolumeIcon = () => {
+    if (isMuted || volume === 0) return <VolumeMute className="w-5 h-5" />;
+    if (volume < 0.5) return <VolumeDown className="w-5 h-5" />;
+    return <VolumeUp className="w-5 h-5" />;
   };
 
   return (
-    <div className="volume-control-container">
-      <button 
-        className="volume-button"
-        onClick={toggleMute}
-        aria-label={isMuted ? "Unmute" : "Mute"}
+    <div
+      className="relative flex items-center group"
+      onMouseEnter={() => setIsSliderVisible(true)}
+      onMouseLeave={() => setIsSliderVisible(false)}
+    >
+      <ControlButton
+        icon={getVolumeIcon()}
+        label={isMuted ? 'Unmute' : 'Mute'}
+        onClick={onMuteToggle}
+        variant="primary"
+        isActive={isMuted}
+      />
+      <div
+        className={`ml-1 w-0 overflow-hidden transition-all duration-300 ease-in-out ${
+          isSliderVisible ? 'w-20 opacity-100' : 'opacity-0'
+        } group-hover:w-20 group-hover:opacity-100`}
       >
-        {renderVolumeIcon()}
-      </button>
-      
-      <div className="volume-slider-container">
         <input
           type="range"
-          className="volume-slider"
           min="0"
           max="1"
           step="0.01"
-          value={volume}
-          onChange={handleVolumeChange}
-          aria-label="Volume"
-          style={{
-            '--volume-level': `${volume * 100}%`
-          } as React.CSSProperties}
+          value={isMuted ? 0 : volume}
+          onChange={e => onVolumeChange(parseFloat(e.target.value))}
+          className="volume-slider w-full accent-blue-500 cursor-pointer"
+          style={
+            {
+              '--track-color': 'rgba(255, 255, 255, 0.3)',
+              '--track-filled': `linear-gradient(90deg, #3b82f6 ${(isMuted ? 0 : volume) * 100}%, var(--track-color) 0%)`,
+            } as React.CSSProperties
+          }
         />
       </div>
     </div>

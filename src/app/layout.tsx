@@ -1,6 +1,7 @@
 
 import '@/styles/globals.css';
 import React from 'react';
+import { Providers } from './_providers';
 
 // Generate default metadata for the site
 // export const metadata: Metadata = getDefaultSiteMetadata({
@@ -20,36 +21,38 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         hydration mismatches between server and client rendering.
       */}
       <body suppressHydrationWarning={true}>
-        <header>
-          <nav>
-            <div className="logo">Video Player App</div>
-            <div className="nav-links">
-              <a href="/">Home</a>
-              <a href="/videos">Videos</a>
-              <a href="/channels">Channels</a>
-              <a href="/about">About</a>
+        <Providers>
+          <header>
+            <nav>
+              <div className="logo">Video Player App</div>
+              <div className="nav-links">
+                <a href="/">Home</a>
+                <a href="/videos">Videos</a>
+                <a href="/channels">Channels</a>
+                <a href="/about">About</a>
+              </div>
+            </nav>
+          </header>
+          <main>{children}</main>
+          <footer>
+            <div className="footer-content">
+              <div className="footer-logo">Video Player App</div>
+              <div className="footer-links">
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a>
+                <a href="/contact">Contact</a>
+              </div>
+              <div className="copyright">
+                {/* 
+                  Using client component or useEffect for client-side date rendering
+                  would be more hydration-safe than inline new Date(), but for a 
+                  footer copyright it's reasonable to use suppressHydrationWarning
+                */}
+                © {new Date().getFullYear()} Video Player App. All rights reserved.
+              </div>
             </div>
-          </nav>
-        </header>
-        <main>{children}</main>
-        <footer>
-          <div className="footer-content">
-            <div className="footer-logo">Video Player App</div>
-            <div className="footer-links">
-              <a href="/terms">Terms</a>
-              <a href="/privacy">Privacy</a>
-              <a href="/contact">Contact</a>
-            </div>
-            <div className="copyright">
-              {/* 
-                Using client component or useEffect for client-side date rendering
-                would be more hydration-safe than inline new Date(), but for a 
-                footer copyright it's reasonable to use suppressHydrationWarning
-              */}
-              © {new Date().getFullYear()} Video Player App. All rights reserved.
-            </div>
-          </div>
-        </footer>
+          </footer>
+        </Providers>
       </body>
     </html>
   );
