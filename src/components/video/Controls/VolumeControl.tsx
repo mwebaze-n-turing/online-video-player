@@ -80,7 +80,6 @@ const VolumeControl: React.FC<VolumeControlProps> = ({ videoRef }) => {
     saveSettings(newVolume, newMutedState);
   };
 
-  // Rest of the component remains the same...
   const renderVolumeIcon = () => {
     if (isMuted || volume === 0) {
       return <VolumeX className="volume-icon" />;
