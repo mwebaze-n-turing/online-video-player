@@ -17,6 +17,8 @@ interface ControlBarProps {
   onToggleFullscreen: () => void;
   className?: string;
   videoRef: React.RefObject<HTMLVideoElement>;
+  isFullscreen?: boolean;
+  fullscreenEnabled?: boolean;
 }
 
 export const ControlBar: FC<ControlBarProps> = ({
@@ -33,19 +35,20 @@ export const ControlBar: FC<ControlBarProps> = ({
   onToggleFullscreen,
   className = '',
   videoRef,
+  isFullscreen = false,
+  fullscreenEnabled = true,
 }) => {
   const { resolvedTheme } = useTheme();
   const [isDragging, setIsDragging] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const [isControlsVisible, setIsControlsVisible] = useState(true);
+  // const [isControlsVisible, setIsControlsVisible] = useState(true); // Managed by parent now
   const [isHovering, setIsHovering] = useState(false);
   const [hoverPosition, setHoverPosition] = useState(0);
   const progressBarRef = useRef<HTMLDivElement>(null);
-  const [duration, setDuration] = useState(0);
   const [bufferedPercent, setBufferedPercent] = useState(0);
 
-  // Calculate the playback percentage
-  const playbackPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Calculate the playback percentage using props from parent
+  const playbackPercent = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
 
   // Format time (mm:ss)
   const formatTime = (seconds: number): string => {
@@ -54,56 +57,31 @@ export const ControlBar: FC<ControlBarProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Update time when playing
+  // Update buffered progress
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
-    };
-
-    const handleDurationChange = () => {
-      setDuration(video.duration);
-    };
-
     const handleProgress = () => {
-      if (video.buffered.length > 0) {
-        setBufferedPercent((video.buffered.end(video.buffered.length - 1) / video.duration) * 100);
+      if (video.buffered.length > 0 && videoDuration > 0) {
+        setBufferedPercent((video.buffered.end(video.buffered.length - 1) / videoDuration) * 100);
       }
     };
 
-    // Add event listeners
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('durationchange', handleDurationChange);
+    // Add event listener
     video.addEventListener('progress', handleProgress);
 
     return () => {
       // Remove event listeners on cleanup
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('durationchange', handleDurationChange);
       video.removeEventListener('progress', handleProgress);
     };
-  }, [videoRef]);
+  }, [videoRef, videoDuration]);
 
-  // Auto-hide controls after inactivity
-  useEffect(() => {
-    let hideTimeout: NodeJS.Timeout;
-
-    if (isPlaying && !isDragging) {
-      hideTimeout = setTimeout(() => {
-        setIsControlsVisible(false);
-      }, 3000);
-    }
-
-    return () => {
-      if (hideTimeout) clearTimeout(hideTimeout);
-    };
-  }, [isPlaying, isDragging]);
-
-  // Handle mouse movement to show controls
+  // Auto-hide controls is now managed by parent VideoPlayer component
+  
+  // Handle mouse movement (simplified)
   const handleMouseMove = useCallback(() => {
-    setIsControlsVisible(true);
+    // Controls visibility managed by parent
   }, []);
 
   // Handle progress bar click for seeking
@@ -115,7 +93,7 @@ export const ControlBar: FC<ControlBarProps> = ({
     const clickPosition = (e.clientX - rect.left) / rect.width;
 
     // Calculate the seek time based on click position (0 to 1) and video duration
-    const seekTime = clickPosition * videoRef.current.duration;
+    const seekTime = clickPosition * videoDuration;
 
     // Seek to the calculated time
     onSeek(seekTime);
@@ -171,7 +149,7 @@ export const ControlBar: FC<ControlBarProps> = ({
     absolute bottom-0 left-0 right-0
     px-4 py-2 
     transition-opacity duration-300
-    ${isControlsVisible ? 'opacity-100' : 'opacity-0'}
+    opacity-100
     ${
       resolvedTheme === 'dark'
         ? 'bg-gradient-to-t from-gray-900 to-transparent text-white'
@@ -340,7 +318,7 @@ export const ControlBar: FC<ControlBarProps> = ({
              active:scale-95 active:bg-black/90
              focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-black/20
              transition-all duration-150 ease-in-out"
-          // onClick={handlePlayPause}
+          onClick={onPlayPause}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
           {isPlaying ? (

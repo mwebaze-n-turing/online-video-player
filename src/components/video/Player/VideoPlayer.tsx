@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import PlayerLoader from './PlayerLoader';
 import { useVideoLoading } from '@/hooks/useVideoLoading';
 import { ControlBar } from '@/components/video/Controls/ControlBar';
+import useFullscreen from '@/hooks/useFullscreen';
 
 export interface VideoPlayerProps {
   src?: string;
@@ -67,6 +68,7 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
   ref
 ) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { resolvedTheme } = useTheme();
   const [loadingState, setLoadingState] = useState<LoadingState>('initial');
@@ -77,6 +79,15 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [bufferedTime, setBufferedTime] = useState(0);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  
+  // Double-click detection
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const clickCount = useRef(0);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Use custom fullscreen hook
+  const { isFullscreen, toggleFullscreen, fullscreenEnabled } = useFullscreen(playerContainerRef);
   
   // Use our custom hook to track loading states
   const {
@@ -341,22 +352,144 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
     }
   };
 
-  const handleToggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      videoRef.current?.requestFullscreen?.();
-    } else {
-      document.exitFullscreen?.();
+  // Show controls and set hide timeout
+  const showControls = () => {
+    setControlsVisible(true);
+    
+    // Clear existing timeout
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    
+    // Set new timeout to hide controls after 3 seconds if video is playing
+    if (isPlaying) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setControlsVisible(false);
+      }, 3000);
     }
   };
+
+  // Handle mouse movement to show controls
+  const handleMouseMove = () => {
+    showControls();
+  };
+
+  // Handle video click with double-click detection
+  const handleVideoClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    clickCount.current += 1;
+    
+    if (clickCount.current === 1) {
+      // Single click - wait for potential double click
+      clickTimeoutRef.current = setTimeout(() => {
+        // If no double click after 300ms, treat as single click
+        handlePlayPauseControl();
+        clickCount.current = 0;
+      }, 300);
+    } else if (clickCount.current === 2) {
+      // Double click - handle fullscreen
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+      toggleFullscreen();
+      clickCount.current = 0;
+    }
+  };
+
+  const handleToggleFullscreen = () => {
+    toggleFullscreen();
+  };
+
+  // Effect to handle pause state and controls visibility
+  useEffect(() => {
+    if (!isPlaying) {
+      setControlsVisible(true);
+      // Clear any hide controls timeout when paused
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+        controlsTimeoutRef.current = null;
+      }
+    } else {
+      // Start hide controls timeout when playing
+      showControls();
+    }
+  }, [isPlaying]);
+
+  // Effect to handle keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle keyboard events in fullscreen or when player is focused
+      if (!isFullscreen && !document.activeElement?.closest('.video-player-container')) {
+        return;
+      }
+
+      switch (e.key) {
+        case ' ':
+        case 'k':
+          e.preventDefault();
+          handlePlayPauseControl();
+          break;
+        case 'f':
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          // Forward 10 seconds
+          if (videoRef.current) {
+            const newTime = Math.min(videoRef.current.duration, videoRef.current.currentTime + 10);
+            videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+            showControls();
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          // Rewind 10 seconds
+          if (videoRef.current) {
+            const newTime = Math.max(0, videoRef.current.currentTime - 10);
+            videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+            showControls();
+          }
+          break;
+        case 'm':
+          e.preventDefault();
+          handleToggleMute();
+          break;
+        default:
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen, isPlaying]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Apply theme-based classes
   const playerContainerClasses = `
     video-player-container
     relative
     theme-transition
-    w-full
-    aspect-video
-    min-h-[400px]
+    overflow-hidden
+    ${isFullscreen 
+      ? 'fixed inset-0 z-50 w-screen h-screen' 
+      : 'w-full aspect-video min-h-[400px]'}
     ${resolvedTheme === 'dark' 
       ? 'bg-black border-gray-800' 
       : 'bg-black border-gray-200'}
@@ -364,7 +497,12 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
   `;
 
   return (
-    <div className={playerContainerClasses}>
+    <div 
+      ref={playerContainerRef}
+      className={playerContainerClasses}
+      onMouseMove={handleMouseMove}
+      tabIndex={0}
+    >
       {/* Video element */}
       <video
         ref={videoRef}
@@ -376,7 +514,7 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
         loop={loop}
         controls={false}
         preload={preload}
-        className="w-full h-full"
+        className={`w-full h-full object-contain ${isFullscreen ? 'max-h-screen' : ''}`}
         onPlay={handlePlay}
         onPause={handlePause}
         onEnded={handleEnded}
@@ -384,8 +522,30 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
         onCanPlayThrough={handleCanPlayThrough}
         onLoadedMetadata={handleLoadedMetadata}
         onProgress={handleProgress}
-        onClick={handlePlayPause}
+        onClick={handleVideoClick}
       />
+      
+      {/* Large play/pause overlay button (for center of video) */}
+      {!isPlaying && (
+        <button
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-black/50 hover:bg-blue-600/80 active:bg-blue-700/90 transition-all duration-150 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/50"
+          onClick={handlePlayPauseControl}
+          aria-label="Play video"
+        >
+          <svg className="w-10 h-10 mx-auto fill-white transform translate-x-0.5" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </button>
+      )}
+      
+      {/* Fullscreen indicator overlay */}
+      {isFullscreen && (
+        <div className="absolute top-0 left-0 p-4 transition-opacity duration-300 opacity-0 hover:opacity-100">
+          <span className="bg-black/70 text-white py-1 px-3 rounded-full text-sm font-medium">
+            Press ESC to exit fullscreen
+          </span>
+        </div>
+      )}
       
       {/* Loading overlay - now theme aware */}
       {(loadingState === 'loading-metadata' || 
@@ -494,7 +654,7 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
         </div>
       )}
 
-      {/* Custom Controls - Always visible */}
+      {/* Custom Controls - Always visible for now */}
       <ControlBar
         videoDuration={duration}
         currentTime={currentTime}
@@ -508,6 +668,8 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
         onToggleMute={handleToggleMute}
         onToggleFullscreen={handleToggleFullscreen}
         videoRef={videoRef}
+        isFullscreen={isFullscreen}
+        fullscreenEnabled={fullscreenEnabled}
       />
     </div>
   );
