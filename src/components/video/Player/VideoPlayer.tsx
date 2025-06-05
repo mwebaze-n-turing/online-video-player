@@ -4,6 +4,7 @@ import React, { forwardRef, useRef, useState, useImperativeHandle, ForwardRefRen
 import { useTheme } from '@/contexts/ThemeContext';
 import PlayerLoader from './PlayerLoader';
 import { useVideoLoading } from '@/hooks/useVideoLoading';
+import { ControlBar } from '@/components/video/Controls/ControlBar';
 
 export interface VideoPlayerProps {
   src?: string;
@@ -70,8 +71,12 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
   const { resolvedTheme } = useTheme();
   const [loadingState, setLoadingState] = useState<LoadingState>('initial');
   const [videoError, setVideoError] = useState<string | null>(null);
-  // Track if user has interacted with the video
   const [userInteracted, setUserInteracted] = useState<boolean>(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [bufferedTime, setBufferedTime] = useState(0);
   
   // Use our custom hook to track loading states
   const {
@@ -270,8 +275,11 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
   };
 
   const handleTimeUpdate = () => {
-    if (onTimeUpdate && videoRef.current) {
-      onTimeUpdate(videoRef.current.currentTime);
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+      if (onTimeUpdate) {
+        onTimeUpdate(videoRef.current.currentTime);
+      }
     }
   };
 
@@ -279,11 +287,76 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
     if (onReady) onReady();
   };
 
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  const handleProgress = () => {
+    if (videoRef.current && videoRef.current.buffered.length > 0) {
+      setBufferedTime(videoRef.current.buffered.end(videoRef.current.buffered.length - 1));
+    }
+  };
+
+  // Control handlers
+  const handlePlayPauseControl = () => {
+    if (!videoRef.current) return;
+    
+    setUserInteracted(true);
+    
+    if (videoRef.current.paused) {
+      videoRef.current.play().catch(error => {
+        console.error("Error playing video:", error);
+        setVideoError(`Playback error: ${error.message}`);
+      });
+    } else {
+      videoRef.current.pause();
+    }
+  };
+
+  const handleSeek = (time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+
+  const handleVolumeChange = (newVolume: number) => {
+    if (videoRef.current) {
+      videoRef.current.volume = newVolume;
+      setVolume(newVolume);
+      if (newVolume > 0 && isMuted) {
+        setIsMuted(false);
+        videoRef.current.muted = false;
+      }
+    }
+  };
+
+  const handleToggleMute = () => {
+    if (videoRef.current) {
+      const newMutedState = !isMuted;
+      videoRef.current.muted = newMutedState;
+      setIsMuted(newMutedState);
+    }
+  };
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      videoRef.current?.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
   // Apply theme-based classes
   const playerContainerClasses = `
     video-player-container
     relative
     theme-transition
+    w-full
+    aspect-video
+    min-h-[400px]
     ${resolvedTheme === 'dark' 
       ? 'bg-black border-gray-800' 
       : 'bg-black border-gray-200'}
@@ -295,13 +368,13 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
       {/* Video element */}
       <video
         ref={videoRef}
-        src={src} // Default video source, can be overridden by props
+        src={src}
         poster={poster}
         title={title}
         autoPlay={autoPlay}
         muted={muted}
         loop={loop}
-        controls={controls} // Native controls for now, we'll replace with custom
+        controls={false}
         preload={preload}
         className="w-full h-full"
         onPlay={handlePlay}
@@ -309,7 +382,8 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
         onEnded={handleEnded}
         onTimeUpdate={handleTimeUpdate}
         onCanPlayThrough={handleCanPlayThrough}
-        // onError={handleError}
+        onLoadedMetadata={handleLoadedMetadata}
+        onProgress={handleProgress}
         onClick={handlePlayPause}
       />
       
@@ -419,6 +493,22 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
           </div>
         </div>
       )}
+
+      {/* Custom Controls - Always visible */}
+      <ControlBar
+        videoDuration={duration}
+        currentTime={currentTime}
+        bufferedTime={bufferedTime}
+        isPlaying={isPlaying}
+        volume={volume}
+        isMuted={isMuted}
+        onPlayPause={handlePlayPauseControl}
+        onSeek={handleSeek}
+        onVolumeChange={handleVolumeChange}
+        onToggleMute={handleToggleMute}
+        onToggleFullscreen={handleToggleFullscreen}
+        videoRef={videoRef}
+      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 // src/components/video/Player/index.tsx
-import { forwardRef, useRef, useState, useImperativeHandle, ForwardRefRenderFunction } from 'react';
+import React, { forwardRef, useRef, useState, useImperativeHandle, ForwardRefRenderFunction } from 'react';
 import PlayerLoader from './PlayerLoader';
 import { useVideoLoading } from '@/hooks/useVideoLoading';
 

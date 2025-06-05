@@ -1,5 +1,5 @@
 // src/components/video/Controls/ControlBar.tsx
-import { FC, useState, useEffect, useCallback, useRef } from 'react';
+import React, { FC, useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import VolumeControl from './VolumeControl';
 
@@ -131,6 +131,39 @@ export const ControlBar: FC<ControlBarProps> = ({
 
     setHoverPosition(hoverPercent);
   };
+
+  const baseButtonClasses = `
+  relative rounded-full bg-black/50 p-2.5 text-white 
+  hover:bg-black/80 hover:scale-110 hover:text-blue-200
+  active:scale-95 active:bg-blue-900/70 active:duration-75
+  focus:outline-none focus:ring-2 focus:ring-blue-400 
+  focus:ring-offset-1 focus:ring-offset-black/20
+  disabled:opacity-50 disabled:pointer-events-none
+  transition-all duration-150 ease-in-out
+`;
+
+  const primaryButtonClasses = `
+  ${baseButtonClasses}
+  p-3.5 
+  hover:bg-blue-700/70 
+  active:bg-blue-800/90
+`;
+
+  // Volume button with special hover behavior for slider
+  const volumeButtonClasses = `
+  ${baseButtonClasses}
+  group
+`;
+
+  // Button with icon rotation (Settings)
+  const rotatingButtonClasses = `
+  ${baseButtonClasses}
+  [&>svg]:transition-transform 
+  [&>svg]:duration-300
+  hover:[&>svg]:rotate-30 
+  active:[&>svg]:rotate-90 
+  active:[&>svg]:duration-150
+`;
 
   // Apply theme-based styling
   const controlsClasses = `
@@ -300,6 +333,26 @@ export const ControlBar: FC<ControlBarProps> = ({
             {formatTime(currentTime)} / {formatTime(videoDuration)}
           </div>
         </div>
+
+        <button
+          className="relative rounded-full bg-black/50 p-2.5 text-white
+             hover:bg-black/80 hover:scale-110 
+             active:scale-95 active:bg-black/90
+             focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-black/20
+             transition-all duration-150 ease-in-out"
+          onClick={handlePlayPause}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 transform translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </button>
 
         {/* Right controls */}
         <div className="flex items-center space-x-2">

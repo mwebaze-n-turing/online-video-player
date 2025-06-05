@@ -9,15 +9,16 @@ export default function HomePage() {
 
       <section className="mb-12">
         <h2 className="text-2xl font-semibold mb-4">Featured Video</h2>
-        <Suspense fallback={<div>Loading video player...</div>}>
-          <VideoPlayer
-            src="/videos/featured.mp4"
-            title="Featured Video"
-            // className="w-full max-w-4xl mx-auto"
-            poster="/thumbnails/featured-thumbnail.jpg"
-            controls
-          />
-        </Suspense>
+        <div className="w-full max-w-4xl mx-auto">
+          <Suspense fallback={<div>Loading video player...</div>}>
+            <VideoPlayer
+              src="/videos/featured.mp4"
+              title="Featured Video"
+              poster="/thumbnails/featured-thumbnail.jpg"
+              controls
+            />
+          </Suspense>
+        </div>
       </section>
 
       <section>
