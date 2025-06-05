@@ -8,6 +8,9 @@ module.exports = {
     extend: {
       // Color palette optimized for video player UI
       colors: {
+        primary: '#3b82f6', // Blue-500
+        'primary-bright': '#60a5fa', // Blue-400
+        'primary-dark': '#2563eb', // Blue-600
         player: {
           bg: '#0f0f0f',
           surface: '#1a1a1a',
@@ -92,6 +95,10 @@ module.exports = {
           '0%': { transform: 'scale(0.9)' },
           '100%': { transform: 'scale(1)' },
         },
+        'scale-in': {
+          '0%': { transform: 'scale(0.9)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
         'progress-pulse': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
@@ -101,8 +108,31 @@ module.exports = {
         'fade-in': 'fade-in 250ms var(--tw-transition-timing-function-player-ease)',
         'fade-out': 'fade-out 250ms var(--tw-transition-timing-function-player-ease)',
         'scale-up': 'scale-up 250ms var(--tw-transition-timing-function-player-ease)',
+        'scale-in': 'scale-in 0.2s ease-out',
         'progress-pulse': 'progress-pulse 2s infinite',
       },
+      
+      // Additional extensions for the VideoPlayerControls component
+      rotate: {
+        '30': '30deg',
+      },
+      
+      transitionProperty: {
+        'width': 'width',
+        'height': 'height',
+        'spacing': 'margin, padding',
+      },
+    },
+  },
+  variants: {
+    extend: {
+      scale: ['active', 'group-hover'],
+      translate: ['active', 'group-hover'],
+      backgroundColor: ['active', 'group-hover'],
+      ringColor: ['hover', 'active'],
+      textColor: ['active', 'group-hover'],
+      opacity: ['group-hover'],
+      rotate: ['group-hover'],
     },
   },
   plugins: [
