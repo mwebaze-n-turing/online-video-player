@@ -67,34 +67,32 @@ const VolumeControl: React.FC<VolumeControlProps> = ({ videoRef }) => {
   `;
 
   return (
-    <div
-      className="relative flex items-center group"
-      onMouseEnter={() => setIsSliderVisible(true)}
-      onMouseLeave={() => setIsSliderVisible(false)}
+    <button 
+      className="control-button volume"
+      onClick={handleMuteToggle}
+      data-state={isMuted ? 'muted' : volume > 0.5 ? 'high' : 'low'}
+      aria-label={isMuted ? 'Unmute' : 'Mute'}
     >
-      <button
-        className={buttonClasses}
-        onClick={handleMuteToggle}
-        aria-label={isMuted ? 'Unmute' : 'Mute'}
-      >
-        {getVolumeIcon()}
-      </button>
-      <div
-        className={`ml-1 w-0 overflow-hidden transition-all duration-300 ease-in-out ${
-          isSliderVisible ? 'w-20 opacity-100' : 'opacity-0'
-        } group-hover:w-20 group-hover:opacity-100`}
-      >
-        <input
-          type="range"
+      <svg className="volume-high-icon" viewBox="0 0 24 24" width="20" height="20">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4zM14 3.2v2.1c2.9.9 5 3.5 5 6.7s-2.1 5.8-5 6.7v2.1c4-.9 7-4.5 7-8.8s-3-7.9-7-8.8z" fill="currentColor"/>
+      </svg>
+      <svg className="volume-muted-icon" viewBox="0 0 24 24" width="20" height="20">
+        <path d="M16.5 12c0-1.8-1-3.3-2.5-4v2.2l2.5 2.4c0-.2 0-.4 0-.6zm2.5 0c0 .9-.2 1.8-.5 2.6l1.5 1.5c.5-1.3.8-2.6.8-4.1 0-4.3-3-7.9-7-8.8v2.1c2.9.9 5 3.5 5 6.7zM4.3 3L3 4.3 7.7 9H3v6h4l5 5v-6.7l4.2 4.2c-.7.6-1.6 1-2.5 1.2v2.1c1.4-.3 2.6-.9 3.7-1.8l2 2 1.3-1.3-13-13c.1 0 .1 0 0 0zM12 4l-1.6 1.6L12 7.3V4z" fill="currentColor"/>
+      </svg>
+      
+      <div className="volume-slider-container">
+        <input 
+          type="range" 
+          className="volume-slider"
           min="0"
           max="1"
           step="0.01"
           value={isMuted ? 0 : volume}
           onChange={e => handleVolumeChange(parseFloat(e.target.value))}
-          className="volume-slider w-full accent-blue-500 cursor-pointer"
+          aria-label="Volume"
         />
       </div>
-    </div>
+    </button>
   );
 };
 
