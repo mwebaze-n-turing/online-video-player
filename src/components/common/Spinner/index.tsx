@@ -1,5 +1,5 @@
 // src/components/common/Spinner/index.tsx
-import { FC } from 'react';
+import React, { FC } from 'react';
 
 interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg';

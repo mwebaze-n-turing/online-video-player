@@ -1,5 +1,5 @@
 // src/components/video/Player/PlayerLoader.tsx
-import { FC } from 'react';
+import React, { FC } from 'react';
 import Spinner from '@/components/common/Spinner';
 
 interface PlayerLoaderProps {

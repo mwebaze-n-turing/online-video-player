@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { VideoPlayer } from '@/components/video/Player/VideoPlayer';
+import React from 'react';
 
 export default function HomePage() {
   return (

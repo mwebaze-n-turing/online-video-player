@@ -1,6 +1,6 @@
 // src/components/video/Player/index.tsx (updated with theme support)
 "use client";
-import { forwardRef, useRef, useState, useImperativeHandle, ForwardRefRenderFunction, useEffect } from 'react';
+import React, { forwardRef, useRef, useState, useImperativeHandle, ForwardRefRenderFunction, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import PlayerLoader from './PlayerLoader';
 import { useVideoLoading } from '@/hooks/useVideoLoading';
@@ -309,7 +309,7 @@ const VideoPlayerComponent: ForwardRefRenderFunction<VideoPlayerRef, VideoPlayer
         onEnded={handleEnded}
         onTimeUpdate={handleTimeUpdate}
         onCanPlayThrough={handleCanPlayThrough}
-        onError={handleError}
+        // onError={handleError}
         onClick={handlePlayPause}
       />
       
