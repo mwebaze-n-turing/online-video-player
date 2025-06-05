@@ -99,6 +99,10 @@ module.exports = {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+        'fade-in': {
+          '0%': { opacity: '0', transform: 'translate(-50%, -12px)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, -8px)' },
+        },
         'progress-pulse': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
@@ -109,6 +113,7 @@ module.exports = {
         'fade-out': 'fade-out 250ms var(--tw-transition-timing-function-player-ease)',
         'scale-up': 'scale-up 250ms var(--tw-transition-timing-function-player-ease)',
         'scale-in': 'scale-in 0.2s ease-out',
+        'fade-in': 'fade-in 0.2s ease-out forwards',
         'progress-pulse': 'progress-pulse 2s infinite',
       },
       
