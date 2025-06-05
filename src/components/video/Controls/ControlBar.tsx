@@ -340,7 +340,7 @@ export const ControlBar: FC<ControlBarProps> = ({
              active:scale-95 active:bg-black/90
              focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-black/20
              transition-all duration-150 ease-in-out"
-          onClick={handlePlayPause}
+          // onClick={handlePlayPause}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
           {isPlaying ? (
