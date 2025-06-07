@@ -1,8 +1,9 @@
 // src/components/video/Controls/ControlBar.tsx
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { ControlButton } from './ControlButton';
-import { PlayIcon, PauseIcon, VolumeUpIcon, VolumeMuteIcon, FullscreenIcon, SpeedIcon } from '../Icons';
+import { PlayIcon, PauseIcon, VolumeUpIcon, VolumeMuteIcon, FullscreenIcon, ExitFullscreenIcon, SpeedIcon } from '../Icons';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import { TimeDisplay } from './TimeDisplay';
 
 interface ControlBarProps {
   isPlaying: boolean;
@@ -15,6 +16,8 @@ interface ControlBarProps {
   toggleFullscreen: () => void;
   currentSpeed: number;
   onSpeedChange: (speed: number) => void;
+  currentTime: number;
+  duration: number;
 }
 
 export const ControlBar = ({
@@ -28,6 +31,8 @@ export const ControlBar = ({
   toggleFullscreen,
   currentSpeed,
   onSpeedChange,
+  currentTime,
+  duration,
 }: ControlBarProps) => {
   
   const [showSpeedOptions, setShowSpeedOptions] = useState(false);
@@ -38,7 +43,7 @@ export const ControlBar = ({
   });
   
   return (
-    <div className="flex items-center justify-between p-4 bg-gradient-to-t from-black/80 to-transparent">
+    <div className="flex items-center justify-between">
       {/* Left section */}
       <div className="flex items-center space-x-2">
         <ControlButton
@@ -47,11 +52,7 @@ export const ControlBar = ({
         >
           {isPlaying ? <PauseIcon /> : <PlayIcon />}
         </ControlButton>
-      </div>
-      
-      {/* Center section */}
-      <div className="flex-1 mx-4">
-        {/* Progress bar would go here */}
+        <TimeDisplay currentTime={currentTime} duration={duration} />
       </div>
       
       {/* Right section */}
@@ -114,7 +115,7 @@ export const ControlBar = ({
           onClick={toggleFullscreen}
           tooltipText={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
         >
-          <FullscreenIcon />
+          {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
         </ControlButton>
       </div>
     </div>

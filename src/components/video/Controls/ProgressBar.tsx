@@ -1,110 +1,119 @@
-import React, { useState, useEffect } from 'react';
+"use client";
+// src/components/video/Controls/ProgressBar.tsx
+import React, { useRef, useEffect, useState, MouseEvent, useCallback } from 'react';
+import { Tooltip } from '../../common/Tooltip';
 
 interface ProgressBarProps {
-  currentTime?: number;
-  duration?: number;
-  onSeek?: (time: number) => void;
-  demonstration?: boolean;
+  currentTime: number;
+  duration: number;
+  buffered: TimeRanges | null;
+  onSeek: (time: number) => void;
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({
-  currentTime = 0,
-  duration = 100,
+export const ProgressBar = ({
+  currentTime,
+  duration,
+  buffered,
   onSeek,
-  demonstration = true
-}) => {
-  const initialPercentage = 30;
-  const [isDemoMode, setIsDemoMode] = useState(demonstration);
-  const [isHovering, setIsHovering] = useState(false);
-  const [hoverPosition, setHoverPosition] = useState(0);
+}: ProgressBarProps) => {
+  const progressRef = useRef<HTMLDivElement>(null);
+  const [hoverPosition, setHoverPosition] = useState<number | null>(null);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  useEffect(() => {
-    if (duration > 0 && currentTime >= 0 && currentTime <= duration) {
-      setIsDemoMode(false);
+  // Calculate percentage for current playback position
+  const progressPercentage = duration ? (currentTime / duration) * 100 : 0;
+  
+  // Convert seconds to MM:SS format
+  const formatTime = (timeInSeconds: number): string => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+  
+  // Handle mouse movement over progress bar
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!progressRef.current || !duration) return;
+    
+    const rect = progressRef.current.getBoundingClientRect();
+    const position = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setHoverPosition(position * 100);
+    setHoverTime(position * duration);
+  }, [duration]);
+  
+  // Handle click on progress bar (seeking)
+  const handleClick = (e: MouseEvent) => {
+    if (!progressRef.current || !duration) return;
+    
+    const rect = progressRef.current.getBoundingClientRect();
+    const clickPosition = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    onSeek(clickPosition * duration);
+  };
+  
+  // Render buffer ranges
+  const renderBufferRanges = () => {
+    if (!buffered || !duration) return null;
+    
+    const ranges = [];
+    for (let i = 0; i < buffered.length; i++) {
+      const start = buffered.start(i);
+      const end = buffered.end(i);
+      
+      // Calculate start and end percentages based on video duration
+      const startPercentage = (start / duration) * 100;
+      const endPercentage = (end / duration) * 100;
+      const width = endPercentage - startPercentage;
+      
+      ranges.push(
+        <div
+          key={i}
+          className="absolute h-full bg-gray-500 rounded-full"
+          style={{
+            left: `${startPercentage}%`,
+            width: `${width}%`,
+          }}
+        />
+      );
     }
-  }, [currentTime, duration]);
 
-  const progressPercentage = isDemoMode
-    ? initialPercentage
-    : (currentTime / duration) * 100;
-
-  // Handle mouse movement over the progress bar
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const progressBarContainer = e.currentTarget;
-    const rect = progressBarContainer.getBoundingClientRect();
-    const position = ((e.clientX - rect.left) / rect.width) * 100;
-    setHoverPosition(Math.max(0, Math.min(100, position)));
-  };
-
-  // Handle click on the progress bar
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSeek) return;
-    const progressBarContainer = e.currentTarget;
-    const rect = progressBarContainer.getBoundingClientRect();
-    const clickPosition = (e.clientX - rect.left) / rect.width;
-    const seekTime = duration * clickPosition;
-    onSeek(seekTime);
-  };
-
-  const formatTimeFromPosition = (positionPercent: number): string => {
-    const estimatedTime = (positionPercent / 100) * duration;
-    const minutes = Math.floor(estimatedTime / 60);
-    const seconds = Math.floor(estimatedTime % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    return ranges;
   };
 
   return (
-    <div 
-      className="progress-bar-container w-full py-2 group cursor-pointer hover:bg-gray-900/10 rounded-lg transition-colors"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-      onMouseMove={handleMouseMove}
+    <div
+      className="group relative h-2 bg-gray-700 rounded-full cursor-pointer"
+      ref={progressRef}
       onClick={handleClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => {
+        setHoverPosition(null);
+        setHoverTime(null);
+      }}
     >
-      <div 
-        className="progress-bar relative h-2 bg-gray-600 rounded-full overflow-hidden transition-all group-hover:h-3"
-      >
-        {/* Main progress indicator */}
+      {/* Buffer progress bars (potentially multiple) */}
+      {renderBufferRanges()}
+
+      {/* Playback progress bar */}
+      <div
+        className="absolute h-full bg-blue-500 rounded-full"
+        style={{ width: `${progressPercentage}%` }}
+      />
+      
+      {/* Hover time indicator */}
+      {hoverPosition !== null && hoverTime !== null && (
         <div 
-          className="progress-indicator absolute top-0 left-0 h-full bg-blue-500 rounded-full"
-          style={{ width: `${progressPercentage}%` }}
-        />
-
-        {/* Full-width hover feedback line */}
-        {isHovering && (
-          <div className="absolute top-0 left-0 w-full h-full">
-            <div className="absolute top-0 bottom-0 w-px bg-white opacity-50" style={{ left: `${hoverPosition}%` }} />
-          </div>
-        )}
-        
-        {/* Hover indicator */}
-        {isHovering && (
-          <div 
-            className="hover-indicator absolute top-0 h-full bg-blue-300 opacity-30 rounded-full"
-            style={{ width: `${hoverPosition}%` }}
-          />
-        )}
-        
-        {/* Hover position marker */}
-        {isHovering && (
-          <div 
-            className="hover-marker absolute top-1/2 w-4 h-4 bg-white rounded-full shadow-md transform -translate-y-1/2 -translate-x-1/2 border-2 border-blue-500"
-            style={{ left: `${hoverPosition}%` }}
-          />
-        )}
-
-        {/* Time tooltip */}
-        {isHovering && (
-          <div
-            className="time-tooltip absolute bottom-full mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-md transform -translate-x-1/2 opacity-90"
-            style={{ left: `${hoverPosition}%` }}
-          >
-            {formatTimeFromPosition(hoverPosition)}
-          </div>
-        )}
-      </div>
+          className="absolute bottom-full mb-2 bg-gray-800 text-white text-xs py-1 px-2 rounded transform -translate-x-1/2 pointer-events-none"
+          style={{ left: `${hoverPosition}%` }}
+        >
+          {formatTime(hoverTime)}
+        </div>
+      )}
+      
+      {/* Progress handle (appears on hover) */}
+      <div
+        className="absolute top-1/2 w-3 h-3 bg-blue-500 rounded-full transform -translate-y-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ left: `${progressPercentage}%` }}
+      />
     </div>
   );
 };
-
-export default ProgressBar;

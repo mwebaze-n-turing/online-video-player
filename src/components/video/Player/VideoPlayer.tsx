@@ -1,7 +1,8 @@
 "use client"
 // src/components/video/Player/VideoPlayer.tsx
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ControlBar } from '../Controls/ControlBar';
+import { ProgressBar } from '../Controls/ProgressBar';
 import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 
 interface VideoPlayerProps {
@@ -18,6 +19,9 @@ export const VideoPlayer = ({ src, poster }: VideoPlayerProps) => {
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [currentSpeed, setCurrentSpeed] = useState(1);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [buffered, setBuffered] = useState<TimeRanges | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -41,6 +45,49 @@ export const VideoPlayer = ({ src, poster }: VideoPlayerProps) => {
     setCurrentSpeed(preferences.playbackSpeed);
     
   }, [isLoaded, preferences, videoRef]);
+
+  // Add event listeners for time, duration and buffering updates
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Update current time display while playing
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+    };
+
+    // Update duration when metadata is loaded
+    const handleDurationChange = () => {
+      setDuration(video.duration);
+    };
+
+    // Update buffer state when more video data is loaded
+    const handleProgress = () => {
+      setBuffered(video.buffered);
+    };
+
+    // Add event listeners
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('durationchange', handleDurationChange);
+    video.addEventListener('progress', handleProgress);
+    video.addEventListener('loadedmetadata', handleDurationChange);
+
+    // Cleanup
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('durationchange', handleDurationChange);
+      video.removeEventListener('progress', handleProgress);
+      video.removeEventListener('loadedmetadata', handleDurationChange);
+    };
+  }, []);
+
+  const handleSeek = useCallback((time: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    video.currentTime = time;
+    setCurrentTime(time);
+  }, []);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -196,22 +243,32 @@ export const VideoPlayer = ({ src, poster }: VideoPlayerProps) => {
       <div 
         className={`
           absolute bottom-0 left-0 right-0
-          transition-opacity duration-300 ease-in-out
+          transition-opacity duration-300 ease-in-out bg-gradient-to-t from-black/70 to-transparent pt-16 pb-2 px-4
           ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
       >
-        <ControlBar
-          isPlaying={isPlaying}
-          togglePlay={togglePlay}
-          isMuted={isMuted}
-          toggleMute={toggleMute}
-          volume={volume}
-          onVolumeChange={handleVolumeChange}
-          isFullscreen={isFullscreen}
-          toggleFullscreen={toggleFullscreen}
-          currentSpeed={currentSpeed}
-          onSpeedChange={handleSpeedChange}
+        {/* Progress bar with buffer visualization */}
+        <ProgressBar 
+          currentTime={currentTime} 
+          duration={duration} 
+          buffered={buffered}
+          onSeek={handleSeek}
         />
+
+        <div className="mt-2">
+          <ControlBar
+            isPlaying={isPlaying}
+            togglePlay={togglePlay}
+            isMuted={isMuted}
+            toggleMute={toggleMute}
+            volume={volume}
+            onVolumeChange={handleVolumeChange}
+            isFullscreen={isFullscreen}
+            toggleFullscreen={toggleFullscreen}
+            currentSpeed={currentSpeed}
+            onSpeedChange={handleSpeedChange}
+          />
+        </div>
       </div>
     </div>
   );
