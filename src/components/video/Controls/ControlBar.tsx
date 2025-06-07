@@ -4,6 +4,8 @@ import { ControlButton } from './ControlButton';
 import { PlayIcon, PauseIcon, VolumeUpIcon, VolumeMuteIcon, FullscreenIcon, ExitFullscreenIcon, SpeedIcon } from '../Icons';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { TimeDisplay } from './TimeDisplay';
+import { ChaptersMenu } from './ChaptersMenu';
+import { Chapter } from '@/types/video';
 
 interface ControlBarProps {
   isPlaying: boolean;
@@ -18,6 +20,9 @@ interface ControlBarProps {
   onSpeedChange: (speed: number) => void;
   currentTime: number;
   duration: number;
+  chapters?: Chapter[];
+  currentChapter: Chapter | null;
+  onChapterSelect: (chapter: Chapter) => void;
 }
 
 export const ControlBar = ({
@@ -33,6 +38,9 @@ export const ControlBar = ({
   onSpeedChange,
   currentTime,
   duration,
+  chapters = [],
+  currentChapter,
+  onChapterSelect,
 }: ControlBarProps) => {
   
   const [showSpeedOptions, setShowSpeedOptions] = useState(false);
@@ -55,8 +63,28 @@ export const ControlBar = ({
         <TimeDisplay currentTime={currentTime} duration={duration} />
       </div>
       
+      {/* Center section (can show current chapter) */}
+      <div className="flex-1 flex justify-center">
+        {currentChapter && (
+          <div className="text-white text-sm truncate max-w-xs">
+            <span className="text-gray-400">Chapter: </span>
+            {currentChapter.title}
+          </div>
+        )}
+      </div>
+      
       {/* Right section */}
       <div className="flex items-center space-x-2">
+        {/* Chapters menu - only show if we have chapters */}
+        {chapters.length > 0 && (
+          <ChaptersMenu 
+            chapters={chapters}
+            currentChapter={currentChapter}
+            onChapterSelect={onChapterSelect}
+            currentTime={currentTime}
+          />
+        )}
+      
         {/* Volume controls */}
         <div className="flex items-center space-x-2">
           <ControlButton

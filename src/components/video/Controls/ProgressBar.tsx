@@ -2,6 +2,8 @@
 // src/components/video/Controls/ProgressBar.tsx
 import React, { useRef, useEffect, useState, MouseEvent, useCallback } from 'react';
 import { OptimizedThumbnailPreview } from './OptimizedThumbnailPreview';
+import { ChapterMarker } from './ChapterMarker';
+import { Chapter } from '@/types/video';
 
 interface ProgressBarProps {
   currentTime: number;
@@ -16,6 +18,9 @@ interface ProgressBarProps {
     interval: number;
     columns: number;
   };
+  chapters?: Chapter[];
+  currentChapter?: Chapter | null;
+  onChapterClick?: (chapter: Chapter) => void;
 }
 
 export const ProgressBar = ({
@@ -25,6 +30,9 @@ export const ProgressBar = ({
   onSeek,
   videoRef,
   thumbnailSprite,
+  chapters = [],
+  currentChapter,
+  onChapterClick,
 }: ProgressBarProps) => {
   const progressRef = useRef<HTMLDivElement>(null);
   const [hoverPosition, setHoverPosition] = useState<number | null>(null);
@@ -130,6 +138,43 @@ export const ProgressBar = ({
     return ranges;
   };
 
+  // Render chapter segments (background coloring of the progress bar)
+  const renderChapterSegments = () => {
+    if (!chapters.length || !duration) return null;
+
+    return chapters.map((chapter, index) => {
+      const startPercentage = (chapter.startTime / duration) * 100;
+      
+      // Calculate end time - either from chapter.endTime or the next chapter's start time
+      let endTime = chapter.endTime;
+      if (!endTime && chapters[index + 1]) {
+        endTime = chapters[index + 1].startTime;
+      } else if (!endTime) {
+        endTime = duration;
+      }
+      
+      const endPercentage = (endTime / duration) * 100;
+      const width = endPercentage - startPercentage;
+      
+      const isCurrentChapterSegment = 
+        currentChapter && currentChapter.id === chapter.id;
+      
+      return (
+        <div 
+          key={chapter.id}
+          className={`absolute h-full ${
+            isCurrentChapterSegment ? 'bg-blue-900/30' : 'bg-gray-800/30'
+          } z-10`}
+          style={{
+            left: `${startPercentage}%`,
+            width: `${width}%`,
+            backgroundColor: chapter.color ? `${chapter.color}30` : undefined
+          }}
+        />
+      );
+    });
+  };
+
   return (
     <div ref={containerRef} className="relative group w-full">
       {/* Thumbnail preview */}
@@ -150,7 +195,7 @@ export const ProgressBar = ({
       )}
       
       <div 
-        className="relative h-2 bg-gray-700 rounded-full cursor-pointer hover:h-3 transition-all"
+        className="relative h-2 bg-gray-700 rounded-full cursor-pointer hover:h-4 transition-all"
         ref={progressRef}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
@@ -163,22 +208,36 @@ export const ProgressBar = ({
           setHoverPixelPosition(null);
         }}
       >
+        {/* Chapter segments in background */}
+        {renderChapterSegments()}
+        
         {/* Buffer progress bars (potentially multiple) */}
         {renderBufferRanges()}
         
         {/* Playback progress bar */}
         <div
-          className="absolute h-full bg-blue-500 rounded-full"
+          className="absolute h-full bg-blue-500 rounded-full z-20"
           style={{ width: `${progressPercentage}%` }}
         />
         
-        {/* Hover indicator (different from the thumbnail preview) */}
+        {/* Chapter markers */}
+        {chapters.map((chapter) => (
+          <ChapterMarker 
+            key={chapter.id}
+            chapter={chapter}
+            duration={duration}
+            isCurrentChapter={currentChapter?.id === chapter.id}
+            onClick={() => onChapterClick?.(chapter)}
+          />
+        ))}
+        
+        {/* Hover indicator */}
         {hoverPosition !== null && (
-          <div className="absolute h-full w-1 bg-white opacity-70 transform -translate-x-1/2 z-10 pointer-events-none" style={{ left: `${hoverPosition}%` }} />
+          <div className="absolute h-full w-1 bg-white opacity-70 transform -translate-x-1/2 z-30 pointer-events-none" style={{ left: `${hoverPosition}%` }} />
         )}
         
-        {/* Progress handle (appears on hover) */}
-        <div className="absolute h-4 w-4 rounded-full bg-white -mt-1 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity" style={{ left: `${progressPercentage}%`, top: '50%' }} />
+        {/* Progress handle */}
+        <div className="absolute h-4 w-4 rounded-full bg-white -mt-1 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-30" style={{ left: `${progressPercentage}%`, top: '50%' }} />
       </div>
     </div>
   );

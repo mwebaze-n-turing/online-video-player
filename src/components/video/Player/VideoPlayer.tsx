@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ControlBar } from '../Controls/ControlBar';
 import { ProgressBar } from '../Controls/ProgressBar';
 import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
+import { Chapter } from '@/types/video';
 
 interface VideoPlayerProps {
   src: string;
@@ -15,9 +16,10 @@ interface VideoPlayerProps {
     interval: number; // seconds between thumbnails
     columns: number;
   };
+  chapters?: Chapter[];
 }
 
-export const VideoPlayer = ({ src, poster, thumbnailSprite }: VideoPlayerProps) => {
+export const VideoPlayer = ({ src, poster, thumbnailSprite, chapters = [] }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { preferences, isLoaded, updateVolume, updatePlaybackSpeed, updateMuted } = usePlayerPreferences();
   
@@ -32,6 +34,10 @@ export const VideoPlayer = ({ src, poster, thumbnailSprite }: VideoPlayerProps) 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
+  
+  // Sort chapters by startTime to ensure they're in chronological order
+  const sortedChapters = [...chapters].sort((a, b) => a.startTime - b.startTime);
 
   // Apply saved preferences when they are loaded
   useEffect(() => {
@@ -88,12 +94,47 @@ export const VideoPlayer = ({ src, poster, thumbnailSprite }: VideoPlayerProps) 
     };
   }, []);
 
+  // Find the current chapter based on playback position
+  useEffect(() => {
+    if (!sortedChapters.length || !isFinite(currentTime)) return;
+    
+    const current = sortedChapters.findLast(chapter => currentTime >= chapter.startTime);
+    
+    if (current && (!currentChapter || current.id !== currentChapter.id)) {
+      setCurrentChapter(current);
+    } else if (!current && currentChapter) {
+      setCurrentChapter(null);
+    }
+  }, [currentTime, sortedChapters, currentChapter]);
+
   const handleSeek = useCallback((time: number) => {
     const video = videoRef.current;
     if (!video) return;
     
     video.currentTime = time;
     setCurrentTime(time);
+    
+    // Find and set current chapter after seeking
+    if (sortedChapters.length) {
+      const chapter = sortedChapters.findLast(chapter => time >= chapter.startTime);
+      setCurrentChapter(chapter || null);
+    }
+  }, [sortedChapters]);
+
+  // Handle chapter selection (jumping to a chapter)
+  const handleChapterSelect = useCallback((chapter: Chapter) => {
+    if (!videoRef.current) return;
+    
+    // Set the video's current time to the chapter's start time
+    videoRef.current.currentTime = chapter.startTime;
+    setCurrentTime(chapter.startTime);
+    setCurrentChapter(chapter);
+    
+    // If the video is paused, start playing
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    }
   }, []);
 
   const togglePlay = () => {
@@ -263,6 +304,9 @@ export const VideoPlayer = ({ src, poster, thumbnailSprite }: VideoPlayerProps) 
           onSeek={handleSeek}
           videoRef={videoRef}
           thumbnailSprite={thumbnailSprite}
+          chapters={sortedChapters}
+          currentChapter={currentChapter}
+          onChapterClick={handleChapterSelect}
         />
 
         <div className="mt-2">
@@ -279,6 +323,9 @@ export const VideoPlayer = ({ src, poster, thumbnailSprite }: VideoPlayerProps) 
             onSpeedChange={handleSpeedChange}
             currentTime={currentTime}
             duration={duration}
+            chapters={sortedChapters}
+            currentChapter={currentChapter}
+            onChapterSelect={handleChapterSelect}
           />
         </div>
       </div>
