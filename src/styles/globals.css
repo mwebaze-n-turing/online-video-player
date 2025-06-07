@@ -113,3 +113,17 @@
 .volume-slider::-moz-range-thumb:hover {
   transform: scale(1.2);
 }
+
+ .tooltip {
+    @apply absolute z-50 bg-gray-800 text-white text-xs px-2 py-1 rounded;
+    @apply opacity-0 transition-opacity duration-300;
+    @apply pointer-events-none whitespace-nowrap;
+  }
+  
+  .tooltip-visible {
+    @apply opacity-100;
+  }
+  
+  .tooltip-arrow {
+    @apply w-0 h-0 absolute border-4 border-transparent;
+  }
