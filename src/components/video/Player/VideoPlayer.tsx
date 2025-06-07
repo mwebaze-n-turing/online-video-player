@@ -8,9 +8,16 @@ import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 interface VideoPlayerProps {
   src: string;
   poster?: string;
+  thumbnailSprite?: {
+    url: string;
+    width: number;
+    height: number;
+    interval: number; // seconds between thumbnails
+    columns: number;
+  };
 }
 
-export const VideoPlayer = ({ src, poster }: VideoPlayerProps) => {
+export const VideoPlayer = ({ src, poster, thumbnailSprite }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { preferences, isLoaded, updateVolume, updatePlaybackSpeed, updateMuted } = usePlayerPreferences();
   
@@ -237,6 +244,7 @@ export const VideoPlayer = ({ src, poster }: VideoPlayerProps) => {
         poster={poster}
         onClick={togglePlay}
         playsInline
+        preload="auto"
       />
       
       {/* Controls container with animation */}
@@ -253,6 +261,8 @@ export const VideoPlayer = ({ src, poster }: VideoPlayerProps) => {
           duration={duration} 
           buffered={buffered}
           onSeek={handleSeek}
+          videoRef={videoRef}
+          thumbnailSprite={thumbnailSprite}
         />
 
         <div className="mt-2">
@@ -267,6 +277,8 @@ export const VideoPlayer = ({ src, poster }: VideoPlayerProps) => {
             toggleFullscreen={toggleFullscreen}
             currentSpeed={currentSpeed}
             onSpeedChange={handleSpeedChange}
+            currentTime={currentTime}
+            duration={duration}
           />
         </div>
       </div>
